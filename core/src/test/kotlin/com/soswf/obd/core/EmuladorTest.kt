@@ -48,4 +48,32 @@ class EmuladorTest {
         // Trava de segurança: nenhum comando de apagar/escrever saiu para o adaptador.
         assertTrue(r.transcricao.none { it.comando.startsWith("04") || it.comando.startsWith("2E") || it.comando.startsWith("31") })
     }
+
+    @Test
+    fun gravacaoContraOEmulador() {
+        val alvo = System.getenv("OBD_EMULADOR")
+        assumeTrue("OBD_EMULADOR não definido", !alvo.isNullOrBlank())
+        val (host, porta) = alvo!!.split(":")
+        val socket = Socket(host, porta.toInt())
+        val elm = Elm327(StreamElmLink(socket.getInputStream(), socket.getOutputStream()) { socket.close() })
+        val arquivo = File("build/gravacao-emulador.csv")
+        try {
+            elm.inicializar()
+            val leitor = Leitor(elm)
+            val pids = leitor.suporte("01").values.flatten()
+            arquivo.bufferedWriter().use { w ->
+                val g = Gravador(leitor, pids, w, mapOf("Origem" to "ELM327-emulator"), cicloBloco21 = 10, cicloDiagnostico = 20)
+                repeat(40) { g.ciclo() }
+                assertEquals(40, g.linhas)
+            }
+        } finally {
+            elm.fechar()
+        }
+        val linhas = arquivo.readLines().filter { !it.startsWith("#") }
+        assertEquals(41, linhas.size) // cabeçalho + 40
+        val cab = linhas[0].split(",")
+        val rpm = cab.indexOf("0C Rotação do motor")
+        assertTrue(rpm > 0)
+        assertTrue(linhas.drop(1).all { it.split(",")[rpm].isNotEmpty() }, "rotação em toda linha")
+    }
 }

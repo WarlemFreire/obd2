@@ -29,6 +29,19 @@ Para compilar sem esperar um push: Actions → APK → **Run workflow**.
 O adaptador plugado o tempo todo pode descarregar a bateria do carro. Até medirmos
 (Fase 2), tire o adaptador se o carro for ficar parado mais de 2–3 dias.
 
+## Gravar uma viagem
+
+1. Conecte na aba **Conectar** e vá para **Gravar** → **Iniciar gravação**.
+2. Pode apagar a tela e dirigir. Uma notificação "OBD: gravando" fica fixa. **Não feche o app**
+   pela tela de apps recentes: isso interrompe a gravação (o que já foi gravado fica salvo).
+3. No fim, **Parar e salvar** → **Compartilhar** o arquivo `.csv`.
+
+O CSV tem uma linha por ciclo (~1 s no Etios) com horário em milissegundos. Parâmetros rápidos
+(rotação, velocidade, carga, borboleta, ar, mistura, sondas) em toda linha; lentos (temperaturas,
+tensão, combustível, etanol) em rodízio, 3 por linha. **Célula vazia = não lido naquela linha.**
+A cada ~30 linhas vai o bloco de fábrica Toyota bruto; a cada ~60, códigos pendentes e falhas de
+ignição por cilindro. Uma hora ≈ 1 MB.
+
 ## O que já funciona (Fase 1)
 
 - Conexão por Bluetooth Clássico, BLE e Wi-Fi, com detecção automática do protocolo.

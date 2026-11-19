@@ -69,7 +69,8 @@ import com.soswf.obd.core.Pids
 import java.io.File
 
 private enum class Aba(val titulo: String, val simbolo: String) {
-    CONECTAR("Conectar", "🔌"), PAINEL("Painel", "📈"), DIAGNOSTICO("Diagnóstico", "🩺"), DESCOBERTA("Descoberta", "🔎")
+    CONECTAR("Conectar", "🔌"), PAINEL("Painel", "📈"), GRAVAR("Gravar", "⏺"), DIAGNOSTICO("Diagnóstico", "🩺"),
+    DESCOBERTA("Descoberta", "🔎")
 }
 
 @Composable
@@ -99,6 +100,7 @@ fun App(vm: ObdViewModel = viewModel()) {
         when (aba) {
             Aba.CONECTAR -> TelaConectar(s, vm, padding, mod)
             Aba.PAINEL -> TelaPainel(s, vm, padding, mod)
+            Aba.GRAVAR -> TelaGravar(s, vm, padding, mod)
             Aba.DIAGNOSTICO -> TelaDiagnostico(s, vm, padding, mod)
             Aba.DESCOBERTA -> TelaDescoberta(s, vm, padding, mod)
         }
@@ -372,14 +374,77 @@ private fun TelaDescoberta(s: UiEstado, vm: ObdViewModel, padding: PaddingValues
 private fun compartilhar(ctx: Context, texto: String) {
     val pasta = File(ctx.cacheDir, "relatorios").apply { mkdirs() }
     val arquivo = File(pasta, "relatorio-obd-${System.currentTimeMillis() / 1000}.txt").apply { writeText(texto) }
+    compartilharArquivo(ctx, arquivo, "text/plain", "Relatório de descoberta OBD")
+}
+
+private fun compartilharArquivo(ctx: Context, arquivo: File, tipo: String, assunto: String) {
     val uri = FileProvider.getUriForFile(ctx, "${ctx.packageName}.arquivos", arquivo)
     val envio = Intent(Intent.ACTION_SEND).apply {
-        type = "text/plain"
+        type = tipo
         putExtra(Intent.EXTRA_STREAM, uri)
-        putExtra(Intent.EXTRA_SUBJECT, "Relatório de descoberta OBD")
+        putExtra(Intent.EXTRA_SUBJECT, assunto)
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
-    ctx.startActivity(Intent.createChooser(envio, "Compartilhar relatório"))
+    ctx.startActivity(Intent.createChooser(envio, "Compartilhar"))
+}
+
+@Composable
+private fun TelaGravar(s: UiEstado, vm: ObdViewModel, padding: PaddingValues, modifier: Modifier) {
+    val ctx = LocalContext.current
+    val versao = remember {
+        runCatching { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName }.getOrNull() ?: "?"
+    }
+    // Android 13+: sem esta permissão a notificação "Gravando" não aparece (a gravação funciona igual).
+    val pedirNotificacao = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        vm.iniciarGravacao(ObdViewModel.infoCelular(versao))
+    }
+    LaunchedEffect(Unit) { vm.listarGravacoes() }
+    var agora by remember { mutableStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(s.gravacao != null) {
+        while (s.gravacao != null) { agora = System.currentTimeMillis(); kotlinx.coroutines.delay(1000) }
+    }
+    val conectado = s.conexao is EstadoConexao.Conectado
+    LazyColumn(modifier, contentPadding = padding.mais(16), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        item {
+            Cartao {
+                Titulo("Gravar viagem")
+                Text(
+                    "Grava todos os parâmetros, linha por linha, até você parar. Pode apagar a tela e dirigir. " +
+                        "Não feche o app pela tela de apps recentes: isso interrompe a gravação.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                val g = s.gravacao
+                if (g == null) {
+                    Button(enabled = conectado, onClick = {
+                        val precisa = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                            ContextCompat.checkSelfPermission(ctx, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+                        if (precisa) pedirNotificacao.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        else vm.iniciarGravacao(ObdViewModel.infoCelular(versao))
+                    }) { Text("Iniciar gravação") }
+                    if (!conectado) Text("Conecte ao adaptador primeiro.", style = MaterialTheme.typography.bodySmall)
+                } else {
+                    val seg = ((agora - g.inicioMs) / 1000).coerceAtLeast(0)
+                    Text("⏺ Gravando: %d:%02d:%02d".format(seg / 3600, seg / 60 % 60, seg % 60), fontWeight = FontWeight.SemiBold)
+                    Text("${g.linhas} linhas" + if (g.linhas > 0) " · %.1f s por linha".format(seg.toDouble() / g.linhas) else "")
+                    Button(onClick = { vm.pararGravacao() }) { Text("Parar e salvar") }
+                }
+            }
+        }
+        item { Text("Gravações salvas", style = MaterialTheme.typography.labelLarge) }
+        if (s.gravacoes.isEmpty()) item { Text("Nenhuma ainda.") }
+        items(s.gravacoes, key = { it.name }) { f ->
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(f.name, fontWeight = FontWeight.Medium)
+                    Text("%.1f KB".format(f.length() / 1024.0), style = MaterialTheme.typography.bodySmall)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = { compartilharArquivo(ctx, f, "text/csv", "Gravação OBD ${f.name}") }) { Text("Compartilhar") }
+                        OutlinedButton(onClick = { vm.apagarGravacao(f) }) { Text("Apagar") }
+                    }
+                }
+            }
+        }
+    }
 }
 
 /** Soma uma margem fixa ao padding do Scaffold (barras do sistema + barra de navegação). */

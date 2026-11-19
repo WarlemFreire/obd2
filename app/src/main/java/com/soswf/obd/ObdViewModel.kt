@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
+import android.os.BatteryManager
 import android.os.Build
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -16,6 +17,7 @@ import com.soswf.obd.core.CodigosFalha
 import com.soswf.obd.core.Descoberta
 import com.soswf.obd.core.Dtc
 import com.soswf.obd.core.Elm327
+import com.soswf.obd.core.Gravador
 import com.soswf.obd.core.InfoAdaptador
 import com.soswf.obd.core.Leitor
 import com.soswf.obd.core.Pids
@@ -24,6 +26,7 @@ import com.soswf.obd.core.RelatorioDescoberta
 import com.soswf.obd.core.Valor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -33,6 +36,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -56,6 +60,8 @@ data class DiagnosticoLido(
     val lidoEm: String,
 )
 
+data class GravacaoAtiva(val arquivo: String, val inicioMs: Long, val linhas: Int = 0)
+
 data class UiEstado(
     val conexao: EstadoConexao = EstadoConexao.Desconectado,
     val dispositivos: List<Dispositivo> = emptyList(),
@@ -70,6 +76,8 @@ data class UiEstado(
     val relatorio: RelatorioDescoberta? = null,
     val relatorioTexto: String? = null,
     val mensagem: String? = null,
+    val gravacao: GravacaoAtiva? = null,
+    val gravacoes: List<File> = emptyList(),
 )
 
 class ObdViewModel(app: Application) : AndroidViewModel(app) {
@@ -82,6 +90,7 @@ class ObdViewModel(app: Application) : AndroidViewModel(app) {
     private var elm: Elm327? = null
     private var leitor: Leitor? = null
     private var jobAoVivo: Job? = null
+    private var jobGravacao: Job? = null
 
     private val bt get() = getApplication<Application>().getSystemService(BluetoothManager::class.java)?.adapter
 
@@ -184,6 +193,7 @@ class ObdViewModel(app: Application) : AndroidViewModel(app) {
     fun alternarSoPrincipais() = _estado.update { it.copy(soPrincipais = !it.soPrincipais) }
 
     fun alternarAoVivo() {
+        if (jobGravacao != null) return avisar("Gravando: o painel já mostra os valores da gravação")
         if (jobAoVivo != null) {
             jobAoVivo?.cancel(); jobAoVivo = null
             _estado.update { it.copy(aoVivoAtivo = false) }
@@ -227,6 +237,7 @@ class ObdViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun executarDescoberta(dispositivoInfo: Map<String, String>) {
+        if (jobGravacao != null) return avisar("Pare a gravação antes da descoberta")
         val e = elm ?: return _estado.update { it.copy(mensagem = "Conecte ao adaptador primeiro") }
         if (_estado.value.descobertaEtapa != null) return
         jobAoVivo?.cancel(); jobAoVivo = null
@@ -251,12 +262,100 @@ class ObdViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    private fun pastaGravacoes(): File =
+        File(getApplication<Application>().getExternalFilesDir(null), "gravacoes").apply { mkdirs() }
+
+    fun listarGravacoes() {
+        val lista = pastaGravacoes().listFiles { f -> f.extension == "csv" }.orEmpty().sortedByDescending { it.name }
+        _estado.update { it.copy(gravacoes = lista) }
+    }
+
+    fun apagarGravacao(f: File) {
+        if (_estado.value.gravacao?.arquivo == f.name) return avisar("Essa gravação ainda está em andamento")
+        f.delete()
+        listarGravacoes()
+    }
+
+    private fun bateriaCelular(): String = runCatching {
+        getApplication<Application>().getSystemService(BatteryManager::class.java)
+            .getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY).toString()
+    }.getOrDefault("")
+
+    /**
+     * Grava até [pararGravacao] ou a conexão cair. Cada linha vai para o disco na hora:
+     * se o app morrer no meio, o arquivo fica com tudo o que foi lido até ali.
+     */
+    fun iniciarGravacao(infoCelular: Map<String, String>) {
+        val l = leitor ?: return avisar("Conecte ao adaptador primeiro")
+        if (jobGravacao != null) return
+        jobAoVivo?.cancel(); jobAoVivo = null
+        val ctx = getApplication<Application>()
+        val agoraMs = System.currentTimeMillis()
+        val arquivo = File(pastaGravacoes(), "gravacao-" + SimpleDateFormat("yyyyMMdd-HHmmss", Locale.ROOT).format(Date(agoraMs)) + ".csv")
+        val con = _estado.value.conexao as? EstadoConexao.Conectado
+        val cabecalho = linkedMapOf("Início" to agora()) + infoCelular +
+            (con?.let { mapOf("Adaptador" to "${it.dispositivo.nome} (${it.dispositivo.tipo.rotulo}) ${it.info.versao}", "Protocolo" to it.info.protocolo) } ?: emptyMap()) +
+            (_estado.value.relatorio?.vin?.let { mapOf("VIN" to it) } ?: emptyMap())
+        GravacaoService.iniciar(ctx)
+        _estado.update { it.copy(gravacao = GravacaoAtiva(arquivo.name, agoraMs), aoVivoAtivo = false) }
+        listarGravacoes()
+
+        jobGravacao = viewModelScope.launch(Dispatchers.IO) {
+            var motivo = "Gravação encerrada"
+            try {
+                arquivo.bufferedWriter().use { w ->
+                    val g = trava.withLock {
+                        val mids = l.suporte("06").values.flatten()
+                        Gravador(
+                            l, _estado.value.pidsSuportados, w, cabecalho,
+                            extras = listOf("bateria_celular_pct"),
+                            lerExtras = { mapOf("bateria_celular_pct" to bateriaCelular()) },
+                            midsFalhas = mids,
+                        )
+                    }
+                    while (isActive) {
+                        val lidos = trava.withLock { g.ciclo() }
+                        _estado.update { s ->
+                            s.copy(aoVivo = s.aoVivo + lidos, gravacao = s.gravacao?.copy(linhas = g.linhas))
+                        }
+                        if (g.linhas % 20 == 0) {
+                            val min = (System.currentTimeMillis() - agoraMs) / 60000
+                            GravacaoService.atualizar(ctx, "$min min · ${g.linhas} linhas")
+                        }
+                    }
+                }
+            } catch (e: java.io.IOException) {
+                motivo = "Gravação parou: conexão perdida (${e.message}). O arquivo foi salvo até ali."
+                elm = null; leitor = null
+                _estado.update { it.copy(conexao = EstadoConexao.Falhou("Conexão perdida durante a gravação")) }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                motivo = "Gravação salva"
+                throw e
+            } catch (e: Exception) {
+                motivo = "Gravação parou: ${e.message}. O arquivo foi salvo até ali."
+            } finally {
+                withContext(NonCancellable) {
+                    GravacaoService.parar(ctx)
+                    jobGravacao = null
+                    _estado.update { it.copy(gravacao = null, mensagem = motivo) }
+                    listarGravacoes()
+                }
+            }
+        }
+    }
+
+    fun pararGravacao() {
+        jobGravacao?.cancel()
+    }
+
     fun explicar(d: Dtc) = CodigosFalha.explicar(d)
 
     private fun agora() = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.forLanguageTag("pt-BR")).format(Date())
 
     override fun onCleared() {
         jobAoVivo?.cancel()
+        jobGravacao?.cancel()
+        GravacaoService.parar(getApplication())
         runCatching { elm?.fechar() }
     }
 
