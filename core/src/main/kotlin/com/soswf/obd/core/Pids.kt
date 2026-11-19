@@ -174,7 +174,7 @@ object Pids {
         add(um(0x61, "Torque pedido pelo motorista", 1, MOTOR, "%") { it[0] - 125.0 })
         add(um(0x62, "Torque real do motor", 1, MOTOR, "%") { it[0] - 125.0 })
         add(um(0x63, "Torque de referência", 2, MOTOR, "Nm") { u16(it).toDouble() })
-        add(PidDef(0x65, "Entradas e saídas auxiliares", 2, MOTOR) { b ->
+        add(PidDef(0x65, "Alavanca do câmbio (a confirmar)", 2, MOTOR) { b ->
             // SAE J1979: A = quais estados existem, B = valor. bit0 tomada de força, bit1 câmbio
             // automático neutro/marcha, bit2 câmbio manual em ponto morto, bit3 vela aquecedora.
             // No Etios só o bit1 existe. Qual valor é P/N e qual é D/R falta confirmar no carro.
