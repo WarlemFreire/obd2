@@ -14,8 +14,10 @@ android {
         applicationId = "com.soswf.obd"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        // No CI: número da execução e commit (ex.: 0.2.7-04870f5). Local: "dev".
+        val execucao = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()
+        versionCode = execucao ?: 1
+        versionName = "0.2." + (execucao?.toString() ?: "0") + "-" + (System.getenv("GITHUB_SHA")?.take(7) ?: "dev")
     }
 
     buildFeatures { compose = true }

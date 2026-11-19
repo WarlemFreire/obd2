@@ -165,6 +165,10 @@ private fun TelaConectar(s: UiEstado, vm: ObdViewModel, padding: PaddingValues, 
             Cartao {
                 Titulo("Adaptador")
                 StatusConexao(s.conexao)
+                val versao = remember {
+                    runCatching { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName }.getOrNull() ?: "?"
+                }
+                Text("Versão do app: $versao", style = MaterialTheme.typography.bodySmall)
                 if (s.conexao is EstadoConexao.Conectado) {
                     OutlinedButton(onClick = { vm.desconectar() }) { Text("Desconectar") }
                 }
