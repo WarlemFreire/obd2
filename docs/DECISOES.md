@@ -145,3 +145,13 @@ Métrica de antes/depois: teste parado, 2 min sem ar + 2 min com ar (hoje +1,14 
 - Retirados: "1 tanque de gasolina a cada 2 meses" (justificativa fraca) e "folga de válvulas a cada
   60.000 km" (trocado por teste de compressão a cada 30.000 km; folga só se a compressão cair).
 - CSV aceita linhas `remover,<id>` para tirar itens de um plano importado antes; a tela permite remover itens.
+
+## Película + recirculação (gravação 16:13, 19/11/2026)
+
+- Primeira gravação com ar ligado em que o compressor **desarma**: 5 vezes em 10 min, 3–7 s cada,
+  detectado parado (MAF cai de ~4,0 para ~1,6 g/s e a rotação vai para ~580 rpm; ar desligado
+  medido antes: ~1,5–1,8 g/s, ~620–650 rpm). Em nenhuma gravação anterior com ar isso aconteceu.
+- Consumo por faixa de velocidade (etanol, com ar): <30 km/h 5,1 km/l (antes 4,0–4,2);
+  30–50 km/h 9,7 km/l (antes 7,2–8,0). Amostra pequena (3,4 km, 10 min); temperatura externa não medida.
+- Parado com compressor armado: ~2,1 L/h, igual a antes: o ganho vem de o compressor desarmar, não de gastar menos ligado.
+- Água 75–84 °C (sem termostática). P0420 pendente segue. Cilindro 4 com 1 falha no ciclo (também às 13:41).
