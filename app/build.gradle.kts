@@ -20,6 +20,17 @@ android {
         versionName = "0.2." + (execucao?.toString() ?: "0") + "-" + (System.getenv("GITHUB_SHA")?.take(7) ?: "dev")
     }
 
+    // Chave fixa no repositório: sem ela cada compilação do CI sai com uma assinatura nova e o
+    // Android recusa instalar a atualização por cima. É chave de debug, para uso próprio, não de loja.
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("assinatura-debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildFeatures { compose = true }
 
     compileOptions {
