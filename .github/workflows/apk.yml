@@ -27,7 +27,7 @@ jobs:
       # Simulador de adaptador ELM327 com cenário Toyota, para o teste de ponta a ponta.
       - name: Subir o ELM327-emulator
         run: |
-          pip install ELM327-emulator==4.0.0
+          pip install "ELM327-emulator>=4,<5"
           python -m elm -n 35000 -s car -d
           for i in $(seq 1 30); do (echo > /dev/tcp/127.0.0.1/35000) 2>/dev/null && exit 0; sleep 1; done
           echo "emulador não subiu" && exit 1
