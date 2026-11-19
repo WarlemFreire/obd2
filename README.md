@@ -62,7 +62,7 @@ O [ELM327-emulator](https://github.com/Ircama/ELM327-emulator) simula o adaptado
 Toyota (CAN 11 bits, 500 kbps):
 
 ```sh
-pip install "ELM327-emulator>=4,<5"
+pip install "git+https://github.com/Ircama/ELM327-emulator@dd3b1d2b19368875830ea8c86cea070040c26caf"
 python -m elm -n 35000 -s car -d
 OBD_EMULADOR=127.0.0.1:35000 ./gradlew :core:test   # gera core/build/relatorio-emulador.txt
 ```
