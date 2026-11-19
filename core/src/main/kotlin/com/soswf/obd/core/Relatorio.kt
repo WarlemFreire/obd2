@@ -38,9 +38,9 @@ object Relatorio {
                 appendLine("  [${if (it.completo) "ok" else "INCOMPLETO"}] ${it.nome}")
             }
         }
-        fun lista(titulo: String, l: List<Dtc>) {
-            appendLine("$titulo: ${if (l.isEmpty()) "nenhum" else ""}")
-            l.forEach { appendLine("  $it — ${CodigosFalha.explicar(it).descricao}") }
+        fun lista(titulo: String, l: List<Dtc>?) {
+            appendLine("$titulo: ${when { l == null -> "não suportado pelo carro"; l.isEmpty() -> "nenhum"; else -> "" }}")
+            l?.forEach { appendLine("  $it — ${CodigosFalha.explicar(it).descricao}") }
         }
         lista("Códigos confirmados", r.confirmados)
         lista("Códigos pendentes", r.pendentes)

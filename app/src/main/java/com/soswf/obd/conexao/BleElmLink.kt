@@ -102,6 +102,9 @@ class BleElmLink private constructor(private val gatt: BluetoothGatt, private va
             val callback = object : BluetoothGattCallback() {
                 override fun onConnectionStateChange(g: BluetoothGatt, status: Int, novo: Int) {
                     if (novo == BluetoothProfile.STATE_CONNECTED) {
+                        // Intervalo de conexão curto: no Etios os pedidos caíram de ~130 ms para
+                        // ~45 ms quando o Android negociou isso sozinho no meio da sessão.
+                        g.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
                         estado.conectado.countDown()
                         g.discoverServices()
                     } else if (novo == BluetoothProfile.STATE_DISCONNECTED) {

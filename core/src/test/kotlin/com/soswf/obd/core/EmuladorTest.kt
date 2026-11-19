@@ -21,7 +21,7 @@ class EmuladorTest {
     @Test
     fun descobertaCompletaNoCenarioToyota() {
         val alvo = System.getenv("OBD_EMULADOR")
-        assumeTrue("OBD_EMULADOR não definido", alvo != null)
+        assumeTrue("OBD_EMULADOR não definido", !alvo.isNullOrBlank())
         val (host, porta) = alvo!!.split(":")
         val socket = Socket(host, porta.toInt())
         val elm = Elm327(StreamElmLink(socket.getInputStream(), socket.getOutputStream()) { socket.close() })

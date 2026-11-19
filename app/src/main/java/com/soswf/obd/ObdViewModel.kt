@@ -45,9 +45,10 @@ sealed interface EstadoConexao {
 }
 
 data class DiagnosticoLido(
-    val confirmados: List<Dtc>,
-    val pendentes: List<Dtc>,
-    val permanentes: List<Dtc>,
+    /** null = o carro não suporta o serviço. */
+    val confirmados: List<Dtc>?,
+    val pendentes: List<Dtc>?,
+    val permanentes: List<Dtc>?,
     val prontidao: com.soswf.obd.core.Diagnostico.Prontidao?,
     val freezeDtc: Dtc?,
     val freezeFrame: List<Valor>,

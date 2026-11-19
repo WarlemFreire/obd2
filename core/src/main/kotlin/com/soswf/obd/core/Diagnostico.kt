@@ -71,15 +71,18 @@ object Diagnostico {
         val aprovado get() = valor in min..max
     }
 
-    /** Modo 06 CAN: 46 MID [TID UASID V V MIN MIN MAX MAX]... (recebe já sem o 46). */
+    /**
+     * Modo 06 CAN (recebe já sem o 46): registros de 9 bytes, cada um repetindo o MID:
+     * [MID TID UASID V V MIN MIN MAX MAX] [MID TID ...]...
+     * Confirmado com a resposta real do Etios: 46 | A2 0B 24 0000 0000 FFFF | A2 0C 24 0000 0000 FFFF.
+     */
     fun modo06(payload: List<Int>): List<Teste06> {
         if (payload.isEmpty()) return emptyList()
-        val mid = payload[0]
-        if (mid % 0x20 == 0) return emptyList() // mapa de suporte, não resultado
-        return payload.drop(1).chunked(8).filter { it.size == 8 }.map { r ->
+        if (payload[0] % 0x20 == 0) return emptyList() // mapa de suporte, não resultado
+        return payload.chunked(9).filter { it.size == 9 }.map { r ->
             Teste06(
-                mid, r[0], r[1],
-                (r[2] shl 8) or r[3], (r[4] shl 8) or r[5], (r[6] shl 8) or r[7],
+                r[0], r[1], r[2],
+                (r[3] shl 8) or r[4], (r[5] shl 8) or r[6], (r[7] shl 8) or r[8],
             )
         }
     }

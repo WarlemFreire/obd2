@@ -287,9 +287,12 @@ private fun TelaDiagnostico(s: UiEstado, vm: ObdViewModel, padding: PaddingValue
         ).forEach { (titulo, lista) ->
             item(key = titulo) {
                 Cartao {
-                    Titulo("$titulo: ${lista.size}")
-                    if (lista.isEmpty()) Text("Nenhum.")
-                    lista.forEach { CartaoCodigo(it, vm) }
+                    Titulo(if (lista == null) titulo else "$titulo: ${lista.size}")
+                    when {
+                        lista == null -> Text("O carro não suporta esta leitura.")
+                        lista.isEmpty() -> Text("Nenhum.")
+                        else -> lista.forEach { CartaoCodigo(it, vm) }
+                    }
                 }
             }
         }

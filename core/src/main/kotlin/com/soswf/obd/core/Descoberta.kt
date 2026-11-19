@@ -13,9 +13,10 @@ data class RelatorioDescoberta(
     val calibracao: String?,
     val nomeEcu: String?,
     val prontidao: Diagnostico.Prontidao?,
-    val confirmados: List<Dtc>,
-    val pendentes: List<Dtc>,
-    val permanentes: List<Dtc>,
+    /** null = serviço não suportado pelo carro. */
+    val confirmados: List<Dtc>?,
+    val pendentes: List<Dtc>?,
+    val permanentes: List<Dtc>?,
     val freezeDtc: Dtc?,
     val freezeFrame: List<Valor>,
     val mids06: Set<Int>,
@@ -30,6 +31,18 @@ class Leitor(val elm: Elm327) {
 
     private val can get() = elm.cabecalho != Cabecalho.NENHUM
 
+    /**
+     * Pedido com uma nova tentativa. Adaptadores clone (sobretudo via BLE) perdem ~3% das
+     * respostas: devolvem NO DATA para um PID suportado ou entregam multi-quadro incompleto.
+     * Visto no relatório real do Etios (0104, 0110, 06A3).
+     */
+    private fun pedir(cmd: String, timeoutMs: Long = 1500): Resultado {
+        val r = elm.pedir(cmd, timeoutMs)
+        val repetir = r is Resultado.Erro &&
+            r.tipo in setOf(ErroElm.SEM_DADOS, ErroElm.INVALIDO, ErroElm.TEMPO_ESGOTADO)
+        return if (repetir) elm.pedir(cmd, timeoutMs) else r
+    }
+
     /** Respostas positivas: payload que começa com [svc + 0x40] e, se [pid] dado, com o PID. */
     private fun positivas(r: Resultado, svc: Int, pid: Int? = null): List<EcuResposta> =
         (r as? Resultado.Ok)?.respostas.orEmpty().filter {
@@ -42,7 +55,7 @@ class Leitor(val elm: Elm327) {
         val porEcu = LinkedHashMap<String, MutableSet<Int>>()
         var base = 0
         while (base <= 0xE0) {
-            val r = elm.pedir("%s%02X%s".format(prefixo, base, sufixo))
+            val r = pedir("%s%02X%s".format(prefixo, base, sufixo))
             val oks = positivas(r, svc, base)
             if (oks.isEmpty()) break
             for (e in oks) {
@@ -57,39 +70,41 @@ class Leitor(val elm: Elm327) {
     }
 
     fun ler(pid: Int): List<LeituraPid> {
-        val r = elm.pedir("01%02X".format(pid))
+        val r = pedir("01%02X".format(pid))
         return positivas(r, 0x01, pid).mapNotNull { e ->
             Pids.decodificar(pid, e.bytes.drop(2))?.let { LeituraPid(e.ecu, pid, it) }
         }
     }
 
-    fun codigos(servico: String): List<Dtc> {
-        val r = elm.pedir(servico)
-        return positivas(r, servico.toInt(16)).flatMap { Diagnostico.codigos(it.bytes.drop(1), can) }.distinct()
+    /** null = o carro não respondeu a este serviço (não suportado), diferente de lista vazia. */
+    fun codigos(servico: String): List<Dtc>? {
+        val oks = positivas(pedir(servico), servico.toInt(16))
+        if (oks.isEmpty()) return null
+        return oks.flatMap { Diagnostico.codigos(it.bytes.drop(1), can) }.distinct()
     }
 
     fun prontidao(): Diagnostico.Prontidao? =
-        positivas(elm.pedir("0101"), 0x01, 0x01).firstOrNull()?.bytes?.drop(2)
+        positivas(pedir("0101"), 0x01, 0x01).firstOrNull()?.bytes?.drop(2)
             ?.takeIf { it.size >= 4 }?.let { Diagnostico.prontidao(it) }
 
     fun freezeFrame(): Pair<Dtc?, List<Valor>> {
-        val causa = positivas(elm.pedir("020200"), 0x02, 0x02).firstOrNull()?.bytes?.drop(3)
+        val causa = positivas(pedir("020200"), 0x02, 0x02).firstOrNull()?.bytes?.drop(3)
             ?.takeIf { it.size >= 2 && (it[0] != 0 || it[1] != 0) }?.let { Dtc.de(it[0], it[1]) }
             ?: return null to emptyList()
         val pids = suporte("02", "00").values.flatten().toSortedSet().filterNot { Pids.ehMapa(it) || it == 0x02 }
         val valores = pids.flatMap { pid ->
-            positivas(elm.pedir("02%02X00".format(pid)), 0x02, pid).firstOrNull()
+            positivas(pedir("02%02X00".format(pid)), 0x02, pid).firstOrNull()
                 ?.let { Pids.decodificar(pid, it.bytes.drop(3)) }.orEmpty()
         }
         return causa to valores
     }
 
     fun modo06(mids: Collection<Int>): List<Diagnostico.Teste06> = mids.flatMap { mid ->
-        positivas(elm.pedir("06%02X".format(mid)), 0x06, mid).flatMap { Diagnostico.modo06(it.bytes.drop(1)) }
+        positivas(pedir("06%02X".format(mid)), 0x06, mid).flatMap { Diagnostico.modo06(it.bytes.drop(1)) }
     }
 
     fun servico09(pid: Int): List<Int>? =
-        positivas(elm.pedir("09%02X".format(pid), 3000), 0x09, pid).firstOrNull()?.bytes?.drop(2)
+        positivas(pedir("09%02X".format(pid), 3000), 0x09, pid).firstOrNull()?.bytes?.drop(2)
 }
 
 object Descoberta {
@@ -157,9 +172,9 @@ object Descoberta {
         }
 
         val pront = etapa("Monitores de prontidão", null as Diagnostico.Prontidao?) { leitor.prontidao() }
-        val conf = etapa("Códigos confirmados", emptyList<Dtc>()) { leitor.codigos("03") }
-        val pend = etapa("Códigos pendentes", emptyList<Dtc>()) { leitor.codigos("07") }
-        val perm = etapa("Códigos permanentes", emptyList<Dtc>()) { leitor.codigos("0A") }
+        val conf = etapa("Códigos confirmados", null as List<Dtc>?) { leitor.codigos("03") }
+        val pend = etapa("Códigos pendentes", null as List<Dtc>?) { leitor.codigos("07") }
+        val perm = etapa("Códigos permanentes", null as List<Dtc>?) { leitor.codigos("0A") }
         val (ffDtc, ff) = etapa("Freeze frame", null as Dtc? to emptyList<Valor>()) { leitor.freezeFrame() }
 
         val mids = etapa("Testes de bordo (Modo 06)", emptySet<Int>()) {

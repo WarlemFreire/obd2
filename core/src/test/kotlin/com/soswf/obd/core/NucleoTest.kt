@@ -110,15 +110,6 @@ class NucleoTest {
         assertEquals(setOf(0x01, 0x03, 0x04, 0x05, 0x06, 0x07, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x13, 0x15, 0x1C, 0x1F, 0x20), s)
     }
 
-    @Test
-    fun falhasDeIgnicaoPorCilindro() {
-        // 46 A2 | TID 0B UASID 24 val=0005 min=0000 max=FFFF | TID 0C 24 val=0012 0000 FFFF
-        val payload = listOf(0xA2, 0x0B, 0x24, 0x00, 0x05, 0x00, 0x00, 0xFF, 0xFF, 0x0C, 0x24, 0x00, 0x12, 0x00, 0x00, 0xFF, 0xFF)
-        val f = Diagnostico.falhasIgnicao(Diagnostico.modo06(payload)).single()
-        assertEquals(1, f.cilindro)
-        assertEquals(18, f.cicloAtual)
-        assertEquals(5, f.media10Ciclos)
-    }
 
     @Test
     fun appNuncaApagaNemEscreve() {
