@@ -20,7 +20,12 @@ import com.soswf.obd.core.Dtc
 import com.soswf.obd.core.Elm327
 import com.soswf.obd.core.Gravador
 import com.soswf.obd.core.InfoAdaptador
+import com.soswf.obd.core.ItemPlano
 import com.soswf.obd.core.Leitor
+import com.soswf.obd.core.LeituraOdometro
+import com.soswf.obd.core.Manutencao
+import com.soswf.obd.core.ManutencaoCsv
+import com.soswf.obd.core.Servico
 import com.soswf.obd.core.Pids
 import com.soswf.obd.core.Relatorio
 import com.soswf.obd.core.RelatorioDescoberta
@@ -118,6 +123,9 @@ data class UiEstado(
     /** Informado pelo motorista: o OBD não sabe se o kit de GNV está ligado. */
     val modoGnv: Boolean = false,
     val eventosMarcados: Int = 0,
+    val manutencao: Manutencao = Manutencao(Manutencao.PLANO_PADRAO, emptyList(), emptyList()),
+    /** km somados pelo app (só enquanto lê o carro); base para estimar o odômetro. */
+    val kmApp: Double = 0.0,
 )
 
 class ObdViewModel(app: Application) : AndroidViewModel(app) {
@@ -134,6 +142,70 @@ class ObdViewModel(app: Application) : AndroidViewModel(app) {
     private val acumulador = AcumuladorConsumo()
     @Volatile private var gravador: Gravador? = null
 
+    // ---- Manutenção: arquivo CSV no armazenamento do app + km medidos pelo app ----
+    private val arquivoManutencao get() = File(getApplication<Application>().filesDir, "manutencao.csv")
+    private val prefs get() = getApplication<Application>().getSharedPreferences("obd", android.content.Context.MODE_PRIVATE)
+    private var ultimoKmAcumulador = 0.0
+
+    init {
+        val m = runCatching { arquivoManutencao.takeIf { it.exists() }?.readText()?.let { ManutencaoCsv.ler(it) } }.getOrNull()
+        val kmApp = prefs.getFloat("km_app", 0f).toDouble()
+        _estado.update {
+            it.copy(manutencao = m?.takeIf { x -> x.plano.isNotEmpty() } ?: Manutencao(Manutencao.PLANO_PADRAO, emptyList(), emptyList()), kmApp = kmApp)
+        }
+    }
+
+    private fun salvarManutencao(m: Manutencao) {
+        _estado.update { it.copy(manutencao = m) }
+        viewModelScope.launch(Dispatchers.IO) { runCatching { arquivoManutencao.writeText(ManutencaoCsv.escrever(m)) } }
+    }
+
+    fun odometroEstimado(): Int? = _estado.value.run { manutencao.odometroEstimado(kmApp) }
+
+    fun informarOdometro(km: Int) {
+        val s = _estado.value
+        salvarManutencao(s.manutencao.copy(odometro = s.manutencao.odometro + LeituraOdometro(java.time.LocalDate.now(), km, s.kmApp)))
+    }
+
+    fun registrarServico(sv: Servico) {
+        val m = _estado.value.manutencao
+        // Serviço com km também atualiza o odômetro conhecido.
+        val kmSv = sv.km
+        val odo = if (kmSv != null && (m.odometro.maxOfOrNull { it.km } ?: 0) < kmSv)
+            m.odometro + LeituraOdometro(sv.data, kmSv, _estado.value.kmApp) else m.odometro
+        salvarManutencao(m.copy(servicos = m.servicos + sv, odometro = odo))
+    }
+
+    fun apagarServico(sv: Servico) {
+        val m = _estado.value.manutencao
+        salvarManutencao(m.copy(servicos = m.servicos - sv))
+    }
+
+    fun editarItem(item: ItemPlano) {
+        val m = _estado.value.manutencao
+        val novo = if (m.plano.any { it.id == item.id }) m.plano.map { if (it.id == item.id) item else it } else m.plano + item
+        salvarManutencao(m.copy(plano = novo))
+    }
+
+    fun exportarManutencao(): File {
+        val pasta = File(getApplication<Application>().cacheDir, "relatorios").apply { mkdirs() }
+        return File(pasta, "manutencao-${SimpleDateFormat("yyyyMMdd", Locale.ROOT).format(Date())}.csv")
+            .apply { writeText(ManutencaoCsv.escrever(_estado.value.manutencao)) }
+    }
+
+    /** Mescla: itens do plano com o mesmo id são substituídos; serviços e leituras novos são somados. */
+    fun importarManutencao(texto: String) {
+        val erros = mutableListOf<String>()
+        val novo = ManutencaoCsv.ler(texto, erros)
+        val m = _estado.value.manutencao
+        val plano = m.plano.associateBy { it.id }.toMutableMap().apply { novo.plano.forEach { put(it.id, it) } }.values.toList()
+        val servicos = (m.servicos + novo.servicos).distinct()
+        val odo = (m.odometro + novo.odometro).distinct()
+        salvarManutencao(Manutencao(plano, servicos, odo))
+        avisar("Importados: ${novo.servicos.size} serviços, ${novo.plano.size} itens do plano, ${novo.odometro.size} leituras" +
+            if (erros.isNotEmpty()) ". ${erros.size} linha(s) ignorada(s): ${erros.first()}" else "")
+    }
+
     private val bt get() = getApplication<Application>().getSystemService(BluetoothManager::class.java)?.adapter
 
     /** Parâmetros mais úteis para olhar dirigindo; o resto entra no modo "todos". */
@@ -145,11 +217,17 @@ class ObdViewModel(app: Application) : AndroidViewModel(app) {
     /** Toda leitura nova (painel ou gravação) passa por aqui: atualiza a tela e o consumo. */
     private fun receber(lidos: Map<Int, List<Valor>>) {
         val t = System.currentTimeMillis()
+        var deltaKm = 0.0
         val c = synchronized(acumulador) {
             lidos.forEach { (pid, v) -> acumulador.registrar(pid, v, t) }
+            // km novos desde a última leitura (o "Zerar" do consumo não afeta o odômetro)
+            deltaKm = (acumulador.km - ultimoKmAcumulador).coerceAtLeast(0.0)
+            ultimoKmAcumulador = acumulador.km
             retratoConsumo()
         }
-        _estado.update { it.copy(aoVivo = it.aoVivo + lidos, consumo = c) }
+        _estado.update { it.copy(aoVivo = it.aoVivo + lidos, consumo = c, kmApp = it.kmApp + deltaKm) }
+        val km = _estado.value.kmApp
+        if (deltaKm > 0 && (km - prefs.getFloat("km_app", 0f)) > 0.2) prefs.edit().putFloat("km_app", km.toFloat()).apply()
     }
 
     private fun retratoConsumo() = acumulador.run {
@@ -159,7 +237,7 @@ class ObdViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun zerarConsumo() {
-        val c = synchronized(acumulador) { acumulador.zerar(); retratoConsumo() }
+        val c = synchronized(acumulador) { acumulador.zerar(); ultimoKmAcumulador = 0.0; retratoConsumo() }
         _estado.update { it.copy(consumo = c) }
     }
 

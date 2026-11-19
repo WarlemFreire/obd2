@@ -112,3 +112,14 @@ Métrica de antes/depois: teste parado, 2 min sem ar + 2 min com ar (hoje +1,14 
   consumo em m³ (AFR 17, 0,74 kg/m³; ±15%), falhas por cilindro a cada 10 linhas no GNV.
 - Protocolo: gravação curta no GNV (10–15 min: lenta quente, cruzeiro, acelerações), marcando cada
   falha/estouro; comparar correção de mistura, lambda, avanço e falhas por cilindro com o etanol.
+
+## Manutenção (Fase 3, iniciada 19/11/2026)
+
+- Aba Manutenção: odômetro (informado + km medidos pelo app desde a última informação), plano com
+  situação por item (vencido / perto de vencer / em dia / sem registro; vence pelo que chegar
+  primeiro, km ou meses; "perto" = 10% do intervalo de km ou 30 dias), registro de serviço, histórico.
+- Plano padrão: uso severo + GNV. Intervalos são sugestão editável; os marcados "conferir" não foram
+  confirmados no manual Toyota nem com o instalador do kit.
+- Um único CSV (tipo = plano | servico | odometro) para guardar, exportar e importar. Importar mescla:
+  itens do plano com o mesmo id são substituídos; serviços e leituras novos são somados.
+- Descoberta virou botão dentro de Diagnóstico.

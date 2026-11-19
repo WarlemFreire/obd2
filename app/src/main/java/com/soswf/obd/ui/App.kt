@@ -70,9 +70,11 @@ import com.soswf.obd.core.Dtc
 import com.soswf.obd.core.Pids
 import java.io.File
 
-private enum class Aba(val titulo: String, val simbolo: String) {
+private enum class Aba(val titulo: String, val simbolo: String, val naBarra: Boolean = true) {
     CONECTAR("Conectar", "🔌"), PAINEL("Painel", "📈"), GRAVAR("Gravar", "⏺"), DIAGNOSTICO("Diagnóstico", "🩺"),
-    DESCOBERTA("Descoberta", "🔎")
+    MANUTENCAO("Manutenção", "🔧"),
+    /** Aberta por um botão dentro de Diagnóstico. */
+    DESCOBERTA("Descoberta", "🔎", naBarra = false),
 }
 
 @Composable
@@ -87,9 +89,9 @@ fun App(vm: ObdViewModel = viewModel()) {
         snackbarHost = { SnackbarHost(snack) },
         bottomBar = {
             NavigationBar {
-                Aba.entries.forEach { a ->
+                Aba.entries.filter { it.naBarra }.forEach { a ->
                     NavigationBarItem(
-                        selected = aba == a,
+                        selected = aba == a || (a == Aba.DIAGNOSTICO && aba == Aba.DESCOBERTA),
                         onClick = { aba = a },
                         icon = { Text(a.simbolo, fontSize = 20.sp) },
                         label = { Text(a.titulo) },
@@ -103,21 +105,22 @@ fun App(vm: ObdViewModel = viewModel()) {
             Aba.CONECTAR -> TelaConectar(s, vm, padding, mod)
             Aba.PAINEL -> TelaPainel(s, vm, padding, mod)
             Aba.GRAVAR -> TelaGravar(s, vm, padding, mod)
-            Aba.DIAGNOSTICO -> TelaDiagnostico(s, vm, padding, mod)
+            Aba.DIAGNOSTICO -> TelaDiagnostico(s, vm, padding, mod) { aba = Aba.DESCOBERTA }
+            Aba.MANUTENCAO -> TelaManutencao(s, vm, padding, mod)
             Aba.DESCOBERTA -> TelaDescoberta(s, vm, padding, mod)
         }
     }
 }
 
 @Composable
-private fun Cartao(conteudo: @Composable () -> Unit) {
+internal fun Cartao(conteudo: @Composable () -> Unit) {
     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors()) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) { conteudo() }
     }
 }
 
 @Composable
-private fun Titulo(t: String) = Text(t, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+internal fun Titulo(t: String) = Text(t, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
 
 @Composable
 private fun StatusConexao(c: EstadoConexao) {
@@ -286,7 +289,7 @@ private fun TelaPainel(s: UiEstado, vm: ObdViewModel, padding: PaddingValues, mo
     }
 }
 
-private fun br(x: Double, casas: Int = 1) = "%.${casas}f".format(x).replace('.', ',')
+internal fun br(x: Double, casas: Int = 1) = "%.${casas}f".format(x).replace('.', ',')
 
 @Composable
 private fun ChaveGnv(s: UiEstado, vm: ObdViewModel) {
@@ -361,7 +364,7 @@ private fun CartaoConsumo(s: UiEstado, vm: ObdViewModel) {
 }
 
 @Composable
-private fun TelaDiagnostico(s: UiEstado, vm: ObdViewModel, padding: PaddingValues, modifier: Modifier) {
+private fun TelaDiagnostico(s: UiEstado, vm: ObdViewModel, padding: PaddingValues, modifier: Modifier, abrirDescoberta: () -> Unit) {
     val d = s.diagnostico
     LazyColumn(modifier, contentPadding = padding.mais(16), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
@@ -372,6 +375,7 @@ private fun TelaDiagnostico(s: UiEstado, vm: ObdViewModel, padding: PaddingValue
                     Text(if (s.lendoDiagnostico) "Lendo…" else "Ler diagnóstico")
                 }
                 d?.let { Text("Lido em ${it.lidoEm}", style = MaterialTheme.typography.bodySmall) }
+                OutlinedButton(onClick = abrirDescoberta) { Text("Relatório de descoberta") }
             }
         }
         if (d == null) return@LazyColumn
@@ -487,7 +491,7 @@ private fun compartilhar(ctx: Context, texto: String) {
     compartilharArquivo(ctx, arquivo, "text/plain", "Relatório de descoberta OBD")
 }
 
-private fun compartilharArquivo(ctx: Context, arquivo: File, tipo: String, assunto: String) {
+internal fun compartilharArquivo(ctx: Context, arquivo: File, tipo: String, assunto: String) {
     val uri = FileProvider.getUriForFile(ctx, "${ctx.packageName}.arquivos", arquivo)
     val envio = Intent(Intent.ACTION_SEND).apply {
         type = tipo
@@ -565,7 +569,7 @@ private fun TelaGravar(s: UiEstado, vm: ObdViewModel, padding: PaddingValues, mo
 
 /** Soma uma margem fixa ao padding do Scaffold (barras do sistema + barra de navegação). */
 @Composable
-private fun PaddingValues.mais(dp: Int): PaddingValues {
+internal fun PaddingValues.mais(dp: Int): PaddingValues {
     val dir = androidx.compose.ui.platform.LocalLayoutDirection.current
     return PaddingValues(
         start = calculateStartPadding(dir) + dp.dp,
