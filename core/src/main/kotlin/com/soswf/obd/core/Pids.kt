@@ -174,13 +174,14 @@ object Pids {
         add(um(0x61, "Torque pedido pelo motorista", 1, MOTOR, "%") { it[0] - 125.0 })
         add(um(0x62, "Torque real do motor", 1, MOTOR, "%") { it[0] - 125.0 })
         add(um(0x63, "Torque de referência", 2, MOTOR, "Nm") { u16(it).toDouble() })
-        add(PidDef(0x65, "Alavanca do câmbio (a confirmar)", 2, MOTOR) { b ->
+        add(PidDef(0x65, "Alavanca do câmbio", 2, MOTOR) { b ->
             // SAE J1979: A = quais estados existem, B = valor. bit0 tomada de força, bit1 câmbio
             // automático neutro/marcha, bit2 câmbio manual em ponto morto, bit3 vela aquecedora.
-            // No Etios só o bit1 existe. Qual valor é P/N e qual é D/R falta confirmar no carro.
+            // No Etios só o bit1 existe. Confirmado no carro (19/11/2026): P = 0, N = 0, D = 1.
+            // R não testado; pelo nome do bit (neutro/marcha) deve ser 1 como D.
             buildList {
-                if (b[0] and 0x02 != 0) add(Valor("Alavanca do câmbio (a confirmar)", null, "",
-                    if (b[1] and 0x02 != 0) "bit N/D = 1" else "bit N/D = 0"))
+                if (b[0] and 0x02 != 0) add(Valor("Alavanca do câmbio", null, "",
+                    if (b[1] and 0x02 != 0) "Engatado (D)" else "P ou N"))
                 if (b[0] and 0x01 != 0) add(Valor("Tomada de força", null, "", if (b[1] and 0x01 != 0) "ativa" else "inativa"))
                 if (b[0] and 0x04 != 0) add(Valor("Câmbio manual em ponto morto", null, "", if (b[1] and 0x04 != 0) "sim" else "não"))
             }

@@ -53,7 +53,7 @@ class GravadorTest {
         val agua = dados.map { it[col("05 Temperatura do líquido de arrefecimento")] }
         assertEquals(listOf("81", "", "81", ""), agua)
         // Alavanca (PID 65) virou coluna mesmo só com o bit N/D.
-        assertEquals("bit N/D = 1", dados[0][col("65 Alavanca do câmbio (a confirmar)")])
+        assertEquals("Engatado (D)", dados[0][col("65 Alavanca do câmbio")])
         // Bloco Toyota e diagnóstico nos ciclos 0 e 3, vazio nos outros.
         assertTrue(dados[0][col("toyota_2101_hex")].startsWith("61 01 8D 00 56 01 8B 69 64 79"))
         assertEquals("", dados[1][col("toyota_2101_hex")])

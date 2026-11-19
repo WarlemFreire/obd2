@@ -76,7 +76,8 @@ class EtiosRealTest {
         assertEquals(100.0, v(0x52, 0xFF).single().numero)                      // etanol
         assertEquals("Etanol", v(0x51, 0x03).single().texto)
         assertEquals("OBD-Brasil fase 2 (OBDBr-2)", v(0x1C, 0x1D).single().texto)
-        assertEquals("bit N/D = 1", v(0x65, 0x02, 0x02).single().texto)
+        assertEquals("Engatado (D)", v(0x65, 0x02, 0x02).single().texto)   // conferido no carro: D
+        assertEquals("P ou N", v(0x65, 0x02, 0x00).single().texto)          // conferido no carro: P e N
         assertEquals("B1S1, B1S2", v(0x13, 0x03).single().texto)
     }
 }

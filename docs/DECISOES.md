@@ -43,7 +43,7 @@ Registradas na entrevista de definição (grill-me), novembro de 2026.
   o app repete uma vez.
 - **Carro:** CAN 11 bits 500 kbps, uma central (7E8), norma **OBD-Brasil fase 2**, VIN Toyota do Brasil.
 - **Suporta:** 39 PIDs, incluindo **teor de etanol (52)**, sonda banda larga, temperatura de
-  catalisador e estado N/D do câmbio (65). Modo 06 com falhas de ignição **por cilindro** (A1–A5).
+  catalisador e posição da alavanca (65: P/N = 0, D = 1, conferido no carro; R não testado). Modo 06 com falhas de ignição **por cilindro** (A1–A5).
 - **Não suporta:** marcha (A4), odômetro (A6), temperatura do óleo (5C), códigos permanentes (0A).
   O odômetro fica mesmo digitado, como decidido.
 - **Câmbio:** nada responde em 7E1, nem OBD padrão nem serviço 21. A central do câmbio não está
@@ -60,6 +60,5 @@ Registradas na entrevista de definição (grill-me), novembro de 2026.
 - Identificar a temperatura do fluido do câmbio no `2101` da central do motor: gravar o bloco
   junto com a água durante uma partida a frio (Fase 2). O byte que sobe mais devagar que a
   água e passa dela depois de rodar é o candidato. Sem isso, não afirmar nada sobre ATF.
-- PID 65: confirmar qual valor do bit N/D é P/N e qual é D/R (olhar o painel trocando a alavanca).
 - PID 54 (pressão do EVAP, faixa larga): a fórmula diverge entre fontes. Resolver com a
   leitura real em repouso (≈ 0 Pa).
