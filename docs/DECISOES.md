@@ -92,3 +92,11 @@ Métrica de antes/depois: teste parado, 2 min sem ar + 2 min com ar (hoje +1,14 
    modo GNV (consumo por MAF não vale no GNV) e, se viável, leitura da central do kit.
 3. Catalisador: só depois do GNV.
 
+
+## Ideias para depois (não priorizadas)
+
+- **Central auxiliar (ESP32 via BLE)** para o "carro que lê e registra tudo", gravando junto com o
+  OBD no mesmo CSV. Começar pelo que não envolve o gás do ar: sinal da embreagem do compressor
+  (optoacoplador), temperaturas (saída do painel, frente do condensador, cofre) com DS18B20,
+  corrente da ventoinha (sensor Hall de alicate). Depois, se fizer sentido, pressão de alta do ar
+  (transdutor na válvula de serviço). Motor e GNV não precisam: o OBD já cobre.
