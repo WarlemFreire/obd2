@@ -1,0 +1,144 @@
+# Códigos de falha OBD-II genéricos (SAE J2012) em português.
+# Colunas: código <TAB> descrição <TAB> causas prováveis, da mais para a menos frequente, separadas por | <TAB> o que verificar primeiro
+# A ordem das causas reflete a experiência de oficina e a literatura técnica para motores a gasolina/flex de injeção
+# multiponto como o 2NR-FBE do Etios. Não é estatística do seu carro: é ponto de partida.
+P0010	Circuito do atuador do comando variável (VVT) admissão, banco 1	Conector ou chicote da válvula OCV|Válvula OCV (solenoide do VVT) queimada|Central do motor	Conector da válvula OCV no cabeçote e resistência da bobina (valor no manual de serviço)
+P0011	Comando de válvulas de admissão adiantado demais / desempenho, banco 1	Óleo sujo, baixo ou de viscosidade errada|Válvula OCV travada ou com tela suja|Engrenagem do VVT travada|Corrente de comando esticada ou fora de ponto	Nível e estado do óleo; Toyota pede 0W-20. Óleo vencido é a causa mais comum
+P0012	Comando de válvulas de admissão atrasado demais, banco 1	Óleo sujo ou baixo|Válvula OCV travada|Engrenagem do VVT com defeito|Corrente fora de ponto	Nível e estado do óleo, depois a válvula OCV
+P0013	Circuito do atuador do comando variável (VVT) escape, banco 1	Conector ou chicote da válvula OCV de escape|Válvula OCV de escape queimada|Central do motor	Conector e resistência da válvula OCV de escape
+P0014	Comando de válvulas de escape adiantado demais / desempenho, banco 1	Óleo sujo ou baixo|Válvula OCV de escape travada|Engrenagem do VVT de escape|Corrente fora de ponto	Nível e estado do óleo
+P0015	Comando de válvulas de escape atrasado demais, banco 1	Óleo sujo ou baixo|Válvula OCV de escape travada|Engrenagem do VVT de escape	Nível e estado do óleo
+P0016	Correlação entre virabrequim e comando de admissão, banco 1	Corrente de comando esticada ou pulou dente|Válvula OCV ou VVT travados|Sensor de rotação ou de fase com defeito|Roda fônica danificada	Histórico de troca de óleo (corrente estica com óleo vencido); ruído de corrente na partida a frio
+P0017	Correlação entre virabrequim e comando de escape, banco 1	Corrente de comando esticada|VVT de escape travado|Sensor de fase de escape	Igual ao P0016, olhando o lado do escape
+P0030	Circuito do aquecedor da sonda lambda B1S1	Aquecedor da sonda queimado|Fusível do aquecedor|Chicote ou conector	Fusível do aquecedor e resistência do aquecedor da sonda
+P0031	Aquecedor da sonda B1S1 com sinal baixo	Aquecedor da sonda aberto|Fio do aquecedor rompido|Fusível	Resistência do aquecedor da sonda dianteira
+P0032	Aquecedor da sonda B1S1 com sinal alto	Curto no chicote|Aquecedor em curto|Central	Chicote da sonda dianteira (encosta no escapamento e derrete)
+P0036	Circuito do aquecedor da sonda lambda B1S2	Aquecedor da sonda traseira queimado|Fusível|Chicote	Resistência do aquecedor da sonda traseira
+P0037	Aquecedor da sonda B1S2 com sinal baixo	Aquecedor aberto|Fio rompido|Fusível	Resistência do aquecedor da sonda traseira
+P0038	Aquecedor da sonda B1S2 com sinal alto	Curto no chicote|Aquecedor em curto	Chicote da sonda traseira
+P0100	Circuito do sensor de fluxo de ar (MAF)	Conector do MAF solto ou oxidado|Sensor MAF com defeito|Chicote	Conector do MAF e se o sensor foi limpo com produto errado
+P0101	Faixa/desempenho do sensor MAF	Entrada de ar falsa depois do MAF (mangueira rachada)|MAF sujo|Filtro de ar muito sujo|Sensor MAF desgastado	Mangueira entre o MAF e a borboleta; filtro de ar
+P0102	Sensor MAF com sinal baixo	Conector solto|MAF com defeito|Fio aberto	Conector do MAF
+P0103	Sensor MAF com sinal alto	Curto no chicote|MAF com defeito	Chicote do MAF
+P0105	Circuito do sensor MAP	Conector do MAP|Sensor MAP com defeito|Mangueira do MAP solta	Conector e mangueira do sensor MAP
+P0106	Faixa/desempenho do sensor MAP	Vazamento de vácuo|Sensor MAP com defeito|Mangueira do MAP	Vazamentos de vácuo no coletor
+P0107	Sensor MAP com sinal baixo	Conector solto|Fio aberto|Sensor	Conector do MAP
+P0108	Sensor MAP com sinal alto	Curto no chicote|Sensor|Vazamento de vácuo grande	Chicote do MAP
+P0110	Circuito do sensor de temperatura do ar admitido	Sensor (integrado ao MAF no Toyota)|Conector|Chicote	Conector do MAF/IAT
+P0112	Sensor de temperatura do ar com sinal baixo	Curto no chicote|Sensor com defeito	Chicote do sensor
+P0113	Sensor de temperatura do ar com sinal alto	Conector solto|Fio aberto|Sensor	Conector do MAF/IAT
+P0115	Circuito do sensor de temperatura do motor	Conector|Sensor com defeito|Chicote	Conector do sensor de temperatura no cabeçote
+P0116	Faixa/desempenho do sensor de temperatura do motor	Sensor com leitura errada|Válvula termostática presa aberta|Nível de líquido baixo	Comparar a leitura com a temperatura ambiente com o motor frio de manhã
+P0117	Sensor de temperatura do motor com sinal baixo	Curto no chicote|Sensor em curto	Chicote do sensor
+P0118	Sensor de temperatura do motor com sinal alto	Conector solto|Fio aberto|Sensor	Conector do sensor
+P0120	Circuito do sensor de posição da borboleta/pedal A	Corpo de borboleta|Conector|Chicote	Conector do corpo de borboleta
+P0121	Faixa/desempenho do sensor de posição da borboleta A	Corpo de borboleta sujo ou com defeito|Conector|Sensor	Limpeza do corpo de borboleta e conector
+P0122	Sensor de posição da borboleta A com sinal baixo	Conector|Chicote|Sensor	Conector do corpo de borboleta
+P0123	Sensor de posição da borboleta A com sinal alto	Chicote em curto|Sensor	Chicote do corpo de borboleta
+P0125	Temperatura insuficiente para controle em malha fechada	Válvula termostática presa aberta|Sensor de temperatura|Nível de líquido baixo	Válvula termostática: o motor demora a esquentar ou esfria em estrada
+P0128	Temperatura do líquido abaixo da temperatura de regulagem do termostato	Válvula termostática presa aberta ou abrindo cedo|Sensor de temperatura com leitura baixa|Eletroventilador ligado direto	Válvula termostática. O app mede o tempo de aquecimento a cada partida a frio
+P0130	Circuito da sonda lambda B1S1	Sonda dianteira com defeito|Chicote|Vazamento no escapamento antes da sonda	Conector e chicote da sonda dianteira
+P0131	Sonda B1S1 com tensão baixa	Vazamento no escapamento antes da sonda|Sonda com defeito|Mistura muito pobre	Vazamento na junta do coletor de escape
+P0132	Sonda B1S1 com tensão alta	Sonda contaminada|Mistura muito rica|Curto no chicote	Bicos pingando e correção de mistura
+P0133	Sonda B1S1 com resposta lenta	Sonda envelhecida|Vazamento no escapamento|Contaminação por óleo ou aditivo	Idade e quilometragem da sonda
+P0134	Sonda B1S1 sem atividade	Sonda morta|Aquecedor da sonda|Chicote aberto	Aquecedor da sonda e conector
+P0135	Circuito do aquecedor da sonda B1S1	Aquecedor da sonda queimado|Fusível|Chicote	Fusível e resistência do aquecedor
+P0136	Circuito da sonda lambda B1S2 (pós-catalisador)	Sonda traseira com defeito|Chicote|Conector	Conector da sonda traseira
+P0137	Sonda B1S2 com tensão baixa	Vazamento no escapamento|Sonda traseira com defeito|Mistura pobre	Vazamentos no escapamento perto da sonda
+P0138	Sonda B1S2 com tensão alta	Sonda traseira contaminada|Mistura rica|Curto no chicote	Correção de mistura e bicos
+P0139	Sonda B1S2 com resposta lenta	Sonda traseira envelhecida|Vazamento no escapamento	Idade da sonda traseira
+P0141	Circuito do aquecedor da sonda B1S2	Aquecedor da sonda traseira queimado|Fusível|Chicote	Resistência do aquecedor da sonda traseira
+P0170	Ajuste de combustível, banco 1	Vazamento de vácuo|Bicos|Pressão de combustível|Sensor MAF	Correções curta e longa de mistura no painel ao vivo
+P0171	Mistura pobre, banco 1	Entrada de ar falsa (mangueiras, junta do coletor, válvula PCV)|Sensor MAF sujo|Bicos sujos ou entupidos|Pressão de combustível baixa (bomba, filtro, regulador)|Vazamento no escapamento antes da sonda	Correção longa de mistura em marcha lenta e a 2500 rpm: se cai com rotação, é ar falso; se piora com rotação, é combustível. Em flex, confira se o defeito só aparece com etanol
+P0172	Mistura rica, banco 1	Bico pingando|Sensor MAF lendo alto|Pressão de combustível alta|Filtro de ar entupido|Vapor do cânister com válvula de purga presa aberta	Bicos e válvula de purga do cânister
+P0200	Circuito dos bicos injetores	Chicote dos bicos|Bico com defeito|Central	Conectores dos bicos
+P0201	Circuito do bico injetor do cilindro 1	Conector do bico 1|Bico 1 com bobina aberta|Chicote	Conector e resistência do bico 1 (comparar com os outros bicos)
+P0202	Circuito do bico injetor do cilindro 2	Conector do bico 2|Bico 2 com bobina aberta|Chicote	Conector e resistência do bico 2 (comparar com os outros bicos)
+P0203	Circuito do bico injetor do cilindro 3	Conector do bico 3|Bico 3 com bobina aberta|Chicote	Conector e resistência do bico 3 (comparar com os outros bicos)
+P0204	Circuito do bico injetor do cilindro 4	Conector do bico 4|Bico 4 com bobina aberta|Chicote	Conector e resistência do bico 4 (comparar com os outros bicos)
+P0219	Rotação do motor acima do limite	Uso do motor acima do limite (redução forçada)|Sensor de rotação	Histórico de condução; geralmente não é defeito
+P0220	Circuito do sensor de posição da borboleta/pedal B	Corpo de borboleta ou pedal|Conector|Chicote	Conector do corpo de borboleta e do pedal
+P0222	Sensor de posição B com sinal baixo	Conector|Chicote|Sensor	Conector do corpo de borboleta
+P0223	Sensor de posição B com sinal alto	Chicote|Sensor	Chicote do corpo de borboleta
+P0230	Circuito primário da bomba de combustível	Relé da bomba|Fusível|Chicote	Relé e fusível da bomba
+P0300	Falha de ignição aleatória ou em vários cilindros	Velas gastas|Bobinas|Mistura pobre (ar falso, bicos, pressão)|Combustível adulterado ou com água|Compressão baixa	Velas e quilometragem da última troca. O app mostra a contagem de falhas por cilindro
+P0301	Falha de ignição no cilindro 1	Vela do cilindro 1|Bobina do cilindro 1|Bico do cilindro 1|Compressão do cilindro 1	Trocar a bobina do cilindro 1 com a de outro cilindro: se a falha muda de cilindro, é a bobina
+P0302	Falha de ignição no cilindro 2	Vela do cilindro 2|Bobina do cilindro 2|Bico do cilindro 2|Compressão do cilindro 2	Trocar a bobina 2 com outra e ver se a falha acompanha
+P0303	Falha de ignição no cilindro 3	Vela do cilindro 3|Bobina do cilindro 3|Bico do cilindro 3|Compressão do cilindro 3	Trocar a bobina 3 com outra e ver se a falha acompanha
+P0304	Falha de ignição no cilindro 4	Vela do cilindro 4|Bobina do cilindro 4|Bico do cilindro 4|Compressão do cilindro 4	Trocar a bobina 4 com outra e ver se a falha acompanha
+P0325	Circuito do sensor de detonação, banco 1	Conector do sensor de detonação|Sensor|Chicote (fica embaixo do coletor)	Conector do sensor de detonação
+P0327	Sensor de detonação com sinal baixo	Conector solto|Sensor com torque de aperto errado|Chicote	Conector e aperto do sensor
+P0328	Sensor de detonação com sinal alto	Chicote|Sensor|Ruído mecânico do motor	Chicote e ruídos do motor
+P0335	Circuito do sensor de rotação (virabrequim)	Sensor de rotação|Conector|Roda fônica danificada|Chicote	Conector do sensor de rotação. Pode causar o motor apagar sem aviso
+P0336	Faixa/desempenho do sensor de rotação	Sensor com folga ou sujo|Roda fônica|Interferência no chicote	Fixação e limpeza do sensor
+P0340	Circuito do sensor de fase (comando), banco 1	Sensor de fase|Conector|Chicote|Corrente fora de ponto	Conector do sensor de fase
+P0341	Faixa/desempenho do sensor de fase	Sensor de fase|Corrente de comando esticada|Roda do comando	Sensor e ponto da corrente
+P0351	Circuito da bobina de ignição do cilindro 1 (primário/secundário)	Bobina 1|Conector da bobina 1|Chicote	Conector da bobina 1
+P0352	Circuito da bobina de ignição do cilindro 2 (primário/secundário)	Bobina 2|Conector da bobina 2|Chicote	Conector da bobina 2
+P0353	Circuito da bobina de ignição do cilindro 3 (primário/secundário)	Bobina 3|Conector da bobina 3|Chicote	Conector da bobina 3
+P0354	Circuito da bobina de ignição do cilindro 4 (primário/secundário)	Bobina 4|Conector da bobina 4|Chicote	Conector da bobina 4
+P0400	Fluxo da EGR	Válvula EGR suja|Passagens entupidas|Chicote	Limpeza da EGR (se o motor tiver)
+P0420	Eficiência do catalisador abaixo do limite, banco 1	Catalisador gasto|Sonda traseira com defeito|Vazamento no escapamento|Falhas de ignição antigas que danificaram o catalisador|Mistura rica crônica	Antes de trocar o catalisador (caro), confirme a sonda traseira e se não há vazamento. Falha de ignição não resolvida mata catalisador
+P0440	Sistema evaporativo (EVAP)	Tampa do tanque mal fechada|Mangueiras do cânister|Válvula de purga|Cânister	Tampa do tanque: fechar até estalar
+P0441	Fluxo de purga incorreto no EVAP	Válvula de purga|Mangueira do cânister|Cânister saturado	Válvula de purga e mangueiras
+P0442	Vazamento pequeno no EVAP	Tampa do tanque|Mangueira rachada|Vedação do cânister	Tampa do tanque e mangueiras
+P0443	Circuito da válvula de purga do cânister	Válvula de purga|Conector|Chicote	Conector da válvula de purga
+P0446	Circuito de ventilação do EVAP	Válvula de ventilação|Filtro do cânister entupido|Chicote	Filtro e válvula de ventilação
+P0455	Vazamento grande no EVAP	Tampa do tanque aberta ou ausente|Mangueira solta|Cânister	Tampa do tanque
+P0456	Vazamento muito pequeno no EVAP	Tampa do tanque|Vedação|Mangueiras	Tampa do tanque
+P0500	Sensor de velocidade do veículo	Sensor de velocidade|Sensor de roda do ABS (em carros que usam o ABS)|Chicote	Velocímetro funcionando? Se não, sensor ou chicote
+P0504	Correlação entre os interruptores do pedal de freio A/B	Interruptor do pedal de freio|Regulagem do interruptor|Chicote	Luz de freio e regulagem do interruptor
+P0505	Sistema de controle da marcha lenta	Corpo de borboleta sujo|Entrada de ar falsa|Aprendizado da marcha lenta perdido	Limpeza do corpo de borboleta e reaprendizado da marcha lenta
+P0506	Marcha lenta abaixo do esperado	Corpo de borboleta sujo|Carga extra (alternador, ar-condicionado)|Motor com falha	Limpeza do corpo de borboleta. Problema comum no Etios
+P0507	Marcha lenta acima do esperado	Entrada de ar falsa|Corpo de borboleta|Mangueira de vácuo solta	Vazamentos de vácuo
+P0560	Tensão do sistema	Bateria|Alternador|Terminais e cabos de bateria|Aterramento	Tensão com motor desligado (12,4–12,8 V) e ligado (13,5–14,8 V)
+P0562	Tensão do sistema baixa	Alternador fraco|Bateria no fim|Correia de acessórios patinando|Terminais oxidados	Tensão de carga com motor ligado e faróis acesos
+P0563	Tensão do sistema alta	Regulador do alternador|Bateria com defeito|Aterramento	Tensão de carga acima de 15 V
+P0600	Comunicação serial interna	Central do motor|Alimentação ou aterramento da central	Aterramentos da central
+P0603	Memória interna da central (KAM)	Bateria desconectada recentemente|Alimentação permanente da central|Central	Apareceu depois de troca de bateria? Apague e observe
+P0606	Processador da central	Central do motor|Alimentação ou aterramento	Aterramentos; se persistir, central
+P0607	Desempenho do módulo de controle	Central|Alimentação	Alimentação da central
+P0615	Circuito do relé de partida	Relé de partida|Chicote|Interruptor da alavanca em P/N	Relé de partida e posição da alavanca
+P0617	Circuito do relé de partida com sinal alto	Relé de partida travado|Chicote	Relé de partida
+P0705	Sensor de faixa da transmissão (posição da alavanca)	Interruptor de posição (inibidor) desregulado ou sujo|Conector|Chicote	Regulagem do interruptor de posição. Sintoma: painel não mostra a marcha, carro não dá partida em P
+P0710	Sensor de temperatura do fluido da transmissão	Sensor de temperatura do fluido|Conector no câmbio|Chicote	Conector do câmbio
+P0711	Faixa/desempenho do sensor de temperatura do fluido	Sensor|Fluido muito degradado|Câmbio superaquecendo	Nível e estado do fluido do câmbio
+P0712	Sensor de temperatura do fluido com sinal baixo	Curto no chicote|Sensor	Chicote do câmbio
+P0713	Sensor de temperatura do fluido com sinal alto	Conector solto|Fio aberto|Sensor	Conector do câmbio
+P0715	Sensor de rotação de entrada do câmbio	Sensor de rotação de entrada|Conector|Chicote	Conector do sensor de rotação de entrada
+P0717	Sensor de rotação de entrada sem sinal	Sensor|Chicote aberto	Sensor e chicote
+P0720	Sensor de rotação de saída do câmbio	Sensor de rotação de saída|Conector|Chicote	Conector do sensor de rotação de saída
+P0724	Interruptor do pedal de freio B com sinal alto	Interruptor do pedal de freio|Regulagem|Chicote	Luz de freio
+P0741	Embreagem do conversor de torque (lock-up) com desempenho ruim ou presa desligada	Fluido degradado ou baixo|Solenoide do lock-up|Conversor de torque desgastado|Corpo de válvulas	Nível e estado do fluido. Fluido escuro ou com cheiro de queimado acelera esse desgaste
+P0742	Embreagem do conversor de torque presa ligada	Solenoide do lock-up travado|Corpo de válvulas|Fluido contaminado	Solenoide e fluido
+P0750	Solenoide de troca A	Solenoide|Conector|Chicote|Fluido contaminado	Resistência do solenoide e fluido
+P0751	Solenoide de troca A com desempenho ruim ou preso desligado	Solenoide travado|Fluido sujo|Corpo de válvulas	Estado do fluido
+P0755	Solenoide de troca B	Solenoide|Conector|Chicote	Resistência do solenoide B
+P0756	Solenoide de troca B com desempenho ruim	Solenoide travado|Fluido sujo	Estado do fluido
+P0760	Solenoide de troca C	Solenoide|Conector|Chicote	Resistência do solenoide C
+P0765	Solenoide de troca D	Solenoide|Conector|Chicote	Resistência do solenoide D
+P0770	Solenoide de troca E	Solenoide|Conector|Chicote	Resistência do solenoide E
+P0780	Mau funcionamento na troca de marcha	Fluido baixo ou degradado|Solenoide|Embreagens internas gastas	Nível e estado do fluido do câmbio
+P0850	Interruptor de estacionamento/neutro	Interruptor de posição|Regulagem|Chicote	Regulagem do interruptor de posição
+P2102	Circuito do motor da borboleta com sinal baixo	Conector do corpo de borboleta|Motor da borboleta|Fusível do ETCS	Fusível do ETCS e conector da borboleta
+P2103	Circuito do motor da borboleta com sinal alto	Curto no chicote|Corpo de borboleta	Chicote do corpo de borboleta
+P2111	Atuador da borboleta travado aberto	Corpo de borboleta sujo ou com borra|Motor da borboleta	Limpeza do corpo de borboleta
+P2112	Atuador da borboleta travado fechado	Corpo de borboleta sujo ou com gelo|Motor da borboleta	Limpeza do corpo de borboleta
+P2118	Corrente do motor da borboleta	Corpo de borboleta|Chicote|Fusível	Corpo de borboleta e fusível
+P2119	Faixa/desempenho do corpo de borboleta	Corpo de borboleta sujo|Molas de retorno|Motor da borboleta	Limpeza do corpo de borboleta
+P2135	Correlação entre os sensores A/B da borboleta	Corpo de borboleta|Conector com mau contato|Chicote	Conector do corpo de borboleta
+P2138	Correlação entre os sensores D/E do pedal	Pedal do acelerador|Conector do pedal|Chicote	Conector do pedal do acelerador
+P2195	Sonda B1S1 indicando pobre continuamente	Entrada de ar falsa|Bicos entupidos|Pressão de combustível baixa|Sonda dianteira com defeito	Correção de mistura: se está muito positiva, a mistura é mesmo pobre. Se não, a sonda
+P2196	Sonda B1S1 indicando rica continuamente	Bico pingando|Pressão de combustível alta|Sonda dianteira com defeito	Correção de mistura e bicos
+P2237	Circuito positivo da bomba da sonda B1S1	Sonda banda larga|Chicote|Central	Conector da sonda dianteira
+P2238	Circuito positivo da sonda B1S1 com sinal baixo	Sonda|Chicote em curto	Chicote da sonda dianteira
+P2239	Circuito positivo da sonda B1S1 com sinal alto	Sonda|Chicote	Chicote da sonda dianteira
+P2401	Bomba de detecção de vazamento do EVAP com sinal baixo	Módulo de detecção de vazamento|Chicote	Módulo do cânister
+P2419	Circuito da válvula de comutação do EVAP com sinal baixo	Válvula de comutação|Chicote	Conector do módulo do cânister
+P2610	Temporizador interno de motor desligado da central	Central do motor|Bateria fraca|Alimentação da central	Estado da bateria
+U0001	Barramento CAN de alta velocidade	Chicote do barramento CAN|Módulo com defeito derrubando a rede|Terminação	Conectores dos módulos e resistência do barramento (~60 Ω entre CAN-H e CAN-L)
+U0100	Perda de comunicação com a central do motor	Alimentação da central|Chicote CAN|Central	Fusíveis da central do motor
+U0101	Perda de comunicação com a central do câmbio	Alimentação da central do câmbio|Chicote CAN|Central do câmbio	Fusíveis da central do câmbio
+U0121	Perda de comunicação com o módulo do ABS	Fusível do ABS|Chicote CAN|Módulo do ABS	Fusível do ABS
+U0140	Perda de comunicação com o módulo da carroceria	Fusível do módulo|Chicote CAN	Fusíveis do painel
+U0155	Perda de comunicação com o painel de instrumentos	Fusível do painel|Chicote CAN|Painel	Fusíveis do painel
