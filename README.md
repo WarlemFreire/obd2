@@ -9,11 +9,14 @@ ou escreva na central (`Elm327.SERVICOS_LEITURA`).
 
 ## Pegar o APK
 
-1. Aba **Actions** do repositório → workflow **APK** → execução mais recente.
-2. Em **Artifacts**, baixe `obd-etios-AAAAMMDD-<commit>`.
-3. No celular, instale o `.apk` liberando "instalar apps de fontes desconhecidas".
+- **Primeira vez:** em **Releases** (lado direito da página do repositório), baixe o
+  `obd-etios-v0.2.N.apk` mais recente e instale liberando "instalar apps de fontes desconhecidas".
+- **Depois:** no app, aba **Conectar** → **Verificar atualização**. Ele baixa a Release mais
+  nova, confere o SHA-256 e abre o instalador.
 
-Para compilar sem esperar um push: Actions → APK → **Run workflow**.
+Cada push compila e publica uma Release `v0.2.<execução>`; o `versionCode` é o mesmo número.
+O APK é assinado com uma chave de debug fixa (`app/assinatura-debug.keystore`) para que as
+atualizações instalem por cima. Para compilar sem push: Actions → APK → **Run workflow**.
 
 ## Primeiro uso no carro (Fase 1)
 

@@ -10,6 +10,8 @@ on:
 jobs:
   apk:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # publicar a Release que o botão "Verificar atualização" do app consulta
     steps:
       - uses: actions/checkout@v7
 
@@ -48,6 +50,18 @@ jobs:
           mv app/build/outputs/apk/debug/app-debug.apk "saida/$nome.apk"
           cp core/build/relatorio-emulador.txt saida/ 2>/dev/null || true
           echo "nome=$nome" >> "$GITHUB_OUTPUT"
+
+      # Release pública com o APK: é dela que o app baixa a atualização.
+      # Tag v0.2.<execução> casa com o versionCode (= número da execução).
+      - name: Publicar Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v0.2.${GITHUB_RUN_NUMBER}"
+          cp "saida/${{ steps.apk.outputs.nome }}.apk" "saida/obd-etios-${tag}.apk"
+          git log -1 --format='%s%n%n%b' > notas.txt
+          gh release create "$tag" "saida/obd-etios-${tag}.apk" \
+            --target "$GITHUB_SHA" --title "OBD Etios ${tag#v}" --notes-file notas.txt --latest
 
       - uses: actions/upload-artifact@v7
         with:

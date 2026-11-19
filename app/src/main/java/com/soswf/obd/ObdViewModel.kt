@@ -60,6 +60,16 @@ data class DiagnosticoLido(
     val lidoEm: String,
 )
 
+sealed interface EstadoAtualizacao {
+    data object Parado : EstadoAtualizacao
+    data object Verificando : EstadoAtualizacao
+    data object EmDia : EstadoAtualizacao
+    data class Disponivel(val d: Atualizador.Disponivel) : EstadoAtualizacao
+    data class Baixando(val pct: Int) : EstadoAtualizacao
+    data class Pronta(val apk: File) : EstadoAtualizacao
+    data class Erro(val msg: String) : EstadoAtualizacao
+}
+
 data class GravacaoAtiva(val arquivo: String, val inicioMs: Long, val linhas: Int = 0)
 
 data class UiEstado(
@@ -78,6 +88,7 @@ data class UiEstado(
     val mensagem: String? = null,
     val gravacao: GravacaoAtiva? = null,
     val gravacoes: List<File> = emptyList(),
+    val atualizacao: EstadoAtualizacao = EstadoAtualizacao.Parado,
 )
 
 class ObdViewModel(app: Application) : AndroidViewModel(app) {
@@ -346,6 +357,35 @@ class ObdViewModel(app: Application) : AndroidViewModel(app) {
 
     fun pararGravacao() {
         jobGravacao?.cancel()
+    }
+
+    fun verificarAtualizacao() {
+        val ctx = getApplication<Application>()
+        _estado.update { it.copy(atualizacao = EstadoAtualizacao.Verificando) }
+        viewModelScope.launch(Dispatchers.IO) {
+            val novo = try {
+                val d = Atualizador.consultar()
+                if (d == null || d.codigo <= Atualizador.codigoInstalado(ctx)) EstadoAtualizacao.EmDia
+                else EstadoAtualizacao.Disponivel(d)
+            } catch (e: Exception) {
+                EstadoAtualizacao.Erro(e.message ?: "sem conexão")
+            }
+            _estado.update { it.copy(atualizacao = novo) }
+        }
+    }
+
+    fun baixarAtualizacao(d: Atualizador.Disponivel) {
+        val ctx = getApplication<Application>()
+        _estado.update { it.copy(atualizacao = EstadoAtualizacao.Baixando(0)) }
+        viewModelScope.launch(Dispatchers.IO) {
+            val novo = try {
+                val apk = Atualizador.baixar(ctx, d) { pct -> _estado.update { it.copy(atualizacao = EstadoAtualizacao.Baixando(pct)) } }
+                EstadoAtualizacao.Pronta(apk)
+            } catch (e: Exception) {
+                EstadoAtualizacao.Erro(e.message ?: "falha no download")
+            }
+            _estado.update { it.copy(atualizacao = novo) }
+        }
     }
 
     fun explicar(d: Dtc) = CodigosFalha.explicar(d)

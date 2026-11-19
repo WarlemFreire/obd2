@@ -59,6 +59,8 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.soswf.obd.Atualizador
+import com.soswf.obd.EstadoAtualizacao
 import com.soswf.obd.EstadoConexao
 import com.soswf.obd.ObdViewModel
 import com.soswf.obd.UiEstado
@@ -169,6 +171,7 @@ private fun TelaConectar(s: UiEstado, vm: ObdViewModel, padding: PaddingValues, 
                     runCatching { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName }.getOrNull() ?: "?"
                 }
                 Text("Versão do app: $versao", style = MaterialTheme.typography.bodySmall)
+                CartaoAtualizacao(s, vm)
                 if (s.conexao is EstadoConexao.Conectado) {
                     OutlinedButton(onClick = { vm.desconectar() }) { Text("Desconectar") }
                 }
@@ -201,6 +204,34 @@ private fun TelaConectar(s: UiEstado, vm: ObdViewModel, padding: PaddingValues, 
                 OutlinedTextField(wifi, { wifi = it.trim() }, label = { Text("Endereço:porta") }, singleLine = true)
                 Button(onClick = { vm.conectar(Dispositivo("Wi-Fi $wifi", wifi, Tipo.WIFI)) }) { Text("Conectar por Wi-Fi") }
             }
+        }
+    }
+}
+
+@Composable
+private fun CartaoAtualizacao(s: UiEstado, vm: ObdViewModel) {
+    val ctx = LocalContext.current
+    when (val a = s.atualizacao) {
+        EstadoAtualizacao.Parado, EstadoAtualizacao.EmDia, is EstadoAtualizacao.Erro -> {
+            if (a == EstadoAtualizacao.EmDia) Text("Você está na versão mais nova.", style = MaterialTheme.typography.bodySmall)
+            if (a is EstadoAtualizacao.Erro) Text("Atualização: ${a.msg}", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            OutlinedButton(onClick = { vm.verificarAtualizacao() }) { Text("Verificar atualização") }
+        }
+        EstadoAtualizacao.Verificando -> Text("Verificando…", style = MaterialTheme.typography.bodySmall)
+        is EstadoAtualizacao.Disponivel -> {
+            Text("Versão ${a.d.versao} disponível" + (a.d.notas.takeIf { it.isNotBlank() }?.let { ": $it" } ?: ""))
+            Button(onClick = { vm.baixarAtualizacao(a.d) }) { Text("Baixar e instalar") }
+        }
+        is EstadoAtualizacao.Baixando -> Text("Baixando… ${a.pct}%")
+        is EstadoAtualizacao.Pronta -> {
+            Text("Download conferido. Toque para instalar:")
+            Button(onClick = {
+                if (Atualizador.podeInstalar(ctx)) Atualizador.instalar(ctx, a.apk)
+                else {
+                    vm.avisar("Permita \"instalar apps desconhecidos\" para o OBD Etios e toque em Instalar de novo")
+                    Atualizador.abrirPermissaoInstalar(ctx)
+                }
+            }) { Text("Instalar") }
         }
     }
 }
