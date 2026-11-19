@@ -289,10 +289,44 @@ private fun TelaPainel(s: UiEstado, vm: ObdViewModel, padding: PaddingValues, mo
 private fun br(x: Double, casas: Int = 1) = "%.${casas}f".format(x).replace('.', ',')
 
 @Composable
+private fun ChaveGnv(s: UiEstado, vm: ObdViewModel) {
+    FilterChip(
+        selected = s.modoGnv,
+        onClick = { vm.alternarGnv() },
+        label = { Text(if (s.modoGnv) "Rodando no GNV" else "Rodando no líquido (toque se ligar o GNV)") },
+    )
+}
+
+@Composable
 private fun CartaoConsumo(s: UiEstado, vm: ObdViewModel) {
     val c = s.consumo
     Cartao {
         Titulo("Consumo (estimado)")
+        ChaveGnv(s, vm)
+        if (s.modoGnv) {
+            when {
+                c?.m3Hora == null -> Text("Aguardando leitura do ar…", style = MaterialTheme.typography.bodySmall)
+                c.kmPorM3Agora != null -> {
+                    Text(if (c.kmPorM3Agora > 99) "> 99 km/m³ (desacelerando)" else "${br(c.kmPorM3Agora)} km/m³",
+                        style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)
+                    Text("${br(c.m3Hora, 2)} m³/h agora", style = MaterialTheme.typography.bodySmall)
+                }
+                else -> {
+                    Text("${br(c.m3Hora, 2)} m³/h", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)
+                    Text("parado: gastando sem andar", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+            if (c != null && c.minutosGnv > 0) {
+                HorizontalDivider()
+                Text("No GNV desde que começou a ler:", style = MaterialTheme.typography.labelLarge)
+                Text("${br(c.kmGnv)} km · ${br(c.m3, 2)} m³" + (c.kmPorM3Medio?.let { " · média ${br(it)} km/m³" } ?: ""))
+                Text("Parado: ${br(c.minutosParadoGnv, 0)} de ${br(c.minutosGnv, 0)} min · ${br(c.m3Parado, 2)} m³")
+                OutlinedButton(onClick = { vm.zerarConsumo() }) { Text("Zerar") }
+            }
+            Text("No GNV a conta usa o ar que o motor puxa e a composição típica do gás. Erro típico ±15%.",
+                style = MaterialTheme.typography.bodySmall)
+            return@Cartao
+        }
         when {
             c == null || c.litrosHora == null -> Text(
                 if (c?.etanolPct == null && c != null) "Aguardando o teor de etanol…"
@@ -499,6 +533,12 @@ private fun TelaGravar(s: UiEstado, vm: ObdViewModel, padding: PaddingValues, mo
                     }) { Text("Iniciar gravação") }
                     if (!conectado) Text("Conecte ao adaptador primeiro.", style = MaterialTheme.typography.bodySmall)
                 } else {
+                    ChaveGnv(s, vm)
+                    Button(
+                        onClick = { vm.marcarEvento() },
+                        modifier = Modifier.fillMaxWidth().height(64.dp),
+                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    ) { Text("⚠ Marcar falha / estouro" + if (s.eventosMarcados > 0) " (${s.eventosMarcados})" else "", fontSize = 18.sp) }
                     val seg = ((agora - g.inicioMs) / 1000).coerceAtLeast(0)
                     Text("⏺ Gravando: %d:%02d:%02d".format(seg / 3600, seg / 60 % 60, seg % 60), fontWeight = FontWeight.SemiBold)
                     Text("${g.linhas} linhas" + if (g.linhas > 0) " · %.1f s por linha".format(seg.toDouble() / g.linhas) else "")

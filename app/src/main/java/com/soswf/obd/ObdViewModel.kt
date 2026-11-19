@@ -83,6 +83,16 @@ data class ConsumoTela(
     val minutosParado: Double,
     val litrosParado: Double,
     val etanolPct: Double?,
+    // GNV (m³), separado do líquido
+    val gnv: Boolean = false,
+    val m3Hora: Double? = null,
+    val kmPorM3Agora: Double? = null,
+    val kmGnv: Double = 0.0,
+    val m3: Double = 0.0,
+    val kmPorM3Medio: Double? = null,
+    val minutosGnv: Double = 0.0,
+    val minutosParadoGnv: Double = 0.0,
+    val m3Parado: Double = 0.0,
 )
 
 data class GravacaoAtiva(val arquivo: String, val inicioMs: Long, val linhas: Int = 0)
@@ -105,6 +115,9 @@ data class UiEstado(
     val gravacoes: List<File> = emptyList(),
     val atualizacao: EstadoAtualizacao = EstadoAtualizacao.Parado,
     val consumo: ConsumoTela? = null,
+    /** Informado pelo motorista: o OBD não sabe se o kit de GNV está ligado. */
+    val modoGnv: Boolean = false,
+    val eventosMarcados: Int = 0,
 )
 
 class ObdViewModel(app: Application) : AndroidViewModel(app) {
@@ -119,6 +132,7 @@ class ObdViewModel(app: Application) : AndroidViewModel(app) {
     private var jobAoVivo: Job? = null
     private var jobGravacao: Job? = null
     private val acumulador = AcumuladorConsumo()
+    @Volatile private var gravador: Gravador? = null
 
     private val bt get() = getApplication<Application>().getSystemService(BluetoothManager::class.java)?.adapter
 
@@ -133,17 +147,35 @@ class ObdViewModel(app: Application) : AndroidViewModel(app) {
         val t = System.currentTimeMillis()
         val c = synchronized(acumulador) {
             lidos.forEach { (pid, v) -> acumulador.registrar(pid, v, t) }
-            acumulador.run {
-                ConsumoTela(litrosHora, kmPorLitroAgora, parado, km, litros, kmPorLitroMedio,
-                    segundos / 60, segundosParado / 60, litrosParado, etanolPct)
-            }
+            retratoConsumo()
         }
         _estado.update { it.copy(aoVivo = it.aoVivo + lidos, consumo = c) }
     }
 
+    private fun retratoConsumo() = acumulador.run {
+        ConsumoTela(litrosHora, kmPorLitroAgora, parado, kmLiquido, litros, kmPorLitroMedio,
+            segundos / 60, segundosParado / 60, litrosParado, etanolPct,
+            gnv, m3Hora, kmPorM3Agora, kmGnv, m3, kmPorM3Medio, segundosGnv / 60, segundosParadoGnv / 60, m3Parado)
+    }
+
     fun zerarConsumo() {
-        synchronized(acumulador) { acumulador.zerar() }
-        _estado.update { it.copy(consumo = it.consumo?.copy(km = 0.0, litros = 0.0, kmPorLitroMedio = null, minutos = 0.0, minutosParado = 0.0, litrosParado = 0.0)) }
+        val c = synchronized(acumulador) { acumulador.zerar(); retratoConsumo() }
+        _estado.update { it.copy(consumo = c) }
+    }
+
+    /** Liga/desliga o modo GNV: muda a conta do consumo e marca as linhas da gravação. */
+    fun alternarGnv() {
+        val novo = !_estado.value.modoGnv
+        val c = synchronized(acumulador) { acumulador.gnv = novo; retratoConsumo() }
+        gravador?.marcarEvento(if (novo) "trocou para GNV" else "trocou para liquido")
+        _estado.update { it.copy(modoGnv = novo, consumo = c) }
+    }
+
+    /** Marca o instante de uma falha ou estouro na gravação. */
+    fun marcarEvento() {
+        val g = gravador ?: return avisar("Inicie a gravação para marcar eventos")
+        g.marcarEvento("falha/estouro")
+        _estado.update { it.copy(eventosMarcados = it.eventosMarcados + 1, mensagem = "Evento marcado") }
     }
 
     fun avisar(m: String) = _estado.update { it.copy(mensagem = m) }
@@ -344,7 +376,7 @@ class ObdViewModel(app: Application) : AndroidViewModel(app) {
             (con?.let { mapOf("Adaptador" to "${it.dispositivo.nome} (${it.dispositivo.tipo.rotulo}) ${it.info.versao}", "Protocolo" to it.info.protocolo) } ?: emptyMap()) +
             (_estado.value.relatorio?.vin?.let { mapOf("VIN" to it) } ?: emptyMap())
         GravacaoService.iniciar(ctx)
-        _estado.update { it.copy(gravacao = GravacaoAtiva(arquivo.name, agoraMs), aoVivoAtivo = false) }
+        _estado.update { it.copy(gravacao = GravacaoAtiva(arquivo.name, agoraMs), aoVivoAtivo = false, eventosMarcados = 0) }
         listarGravacoes()
 
         jobGravacao = viewModelScope.launch(Dispatchers.IO) {
@@ -358,8 +390,10 @@ class ObdViewModel(app: Application) : AndroidViewModel(app) {
                             extras = listOf("bateria_celular_pct"),
                             lerExtras = { mapOf("bateria_celular_pct" to bateriaCelular()) },
                             midsFalhas = mids,
+                            modoGnv = { _estado.value.modoGnv },
                         )
                     }
+                    gravador = g
                     while (isActive) {
                         val lidos = trava.withLock { g.ciclo() }
                         receber(lidos)
@@ -381,6 +415,7 @@ class ObdViewModel(app: Application) : AndroidViewModel(app) {
                 motivo = "Gravação parou: ${e.message}. O arquivo foi salvo até ali."
             } finally {
                 withContext(NonCancellable) {
+                    gravador = null
                     GravacaoService.parar(ctx)
                     jobGravacao = null
                     _estado.update { it.copy(gravacao = null, mensagem = motivo) }

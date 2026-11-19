@@ -21,6 +21,20 @@ object Consumo {
     const val DENS_GASOLINA = 0.745
     const val DENS_ETANOL_HIDRATADO = 0.809
 
+    /**
+     * GNV: majoritariamente metano. AFR estequiométrico ~17 (metano puro 17,2; o gás brasileiro
+     * tem um pouco de etano e inertes). Densidade ~0,74 kg/m³ a ~20 °C e 1 atm (densidade relativa
+     * típica ~0,6). Os dois variam com a composição do gás: erro esperado maior que no líquido (~±15%).
+     */
+    const val AFR_GNV = 17.0
+    const val DENS_GNV_KG_M3 = 0.74
+
+    /** m³ de GNV por hora pelo ar admitido. No GNV a central do carro continua comandando lambda ~1. */
+    fun m3PorHora(mafGs: Double, lambda: Double = 1.0): Double {
+        val lam = if (lambda in 0.5..1.5) lambda else 1.0
+        return mafGs / (AFR_GNV * lam) * 3600 / (DENS_GNV_KG_M3 * 1000)
+    }
+
     /** Litros por hora. [etanolPct] 0..100 (PID 52); [lambda] comandado (PID 44), 1.0 se ausente. */
     fun litrosPorHora(mafGs: Double, etanolPct: Double, lambda: Double = 1.0): Double {
         val x = (etanolPct / 100).coerceIn(0.0, 1.0)
@@ -49,11 +63,23 @@ object Consumo {
  */
 class AcumuladorConsumo(private val maxIntervaloMs: Long = 5000) {
 
+    /** true = rodando no GNV: consumo em m³, separado do líquido. */
+    var gnv = false
+
     var litros = 0.0; private set
     var km = 0.0; private set
     var litrosParado = 0.0; private set
     var segundos = 0.0; private set
     var segundosParado = 0.0; private set
+
+    var m3 = 0.0; private set
+    var kmGnv = 0.0; private set
+    var m3Parado = 0.0; private set
+    var segundosGnv = 0.0; private set
+    var segundosParadoGnv = 0.0; private set
+
+    /** km rodados no líquido (km total menos o rodado no GNV). */
+    val kmLiquido get() = km - kmGnv
 
     /** Últimos valores conhecidos. */
     var litrosHora: Double? = null; private set
@@ -74,10 +100,23 @@ class AcumuladorConsumo(private val maxIntervaloMs: Long = 5000) {
             return if (v >= 3.0 && lh > 0.05) v / lh else null
         }
 
-    val kmPorLitroMedio: Double? get() = if (litros > 0.05) km / litros else null
+    val kmPorLitroMedio: Double? get() = if (litros > 0.05) kmLiquido / litros else null
+    val kmPorM3Medio: Double? get() = if (m3 > 0.05) kmGnv / m3 else null
+
+    /** m³/h instantâneo no GNV (null fora dele). */
+    var m3Hora: Double? = null; private set
+
+    /** km/m³ instantâneo; null parado ou fora do GNV. */
+    val kmPorM3Agora: Double?
+        get() {
+            val v = velocidade ?: return null
+            val q = m3Hora ?: return null
+            return if (gnv && v >= 3.0 && q > 0.05) v / q else null
+        }
 
     fun zerar() {
         litros = 0.0; km = 0.0; litrosParado = 0.0; segundos = 0.0; segundosParado = 0.0
+        m3 = 0.0; kmGnv = 0.0; m3Parado = 0.0; segundosGnv = 0.0; segundosParadoGnv = 0.0
         tMaf = null; tVel = null
     }
 
@@ -91,10 +130,27 @@ class AcumuladorConsumo(private val maxIntervaloMs: Long = 5000) {
             0x52 -> { etanolPct = n; temTeorReal = true }
             0x44 -> lambda = n
             0x0D -> {
-                tVel?.let { t0 -> intervalo(t0, tMs)?.let { dt -> km += (velocidade ?: n) * dt / 3600 } }
+                tVel?.let { t0 ->
+                    intervalo(t0, tMs)?.let { dt ->
+                        val d = (velocidade ?: n) * dt / 3600
+                        km += d
+                        if (gnv) kmGnv += d
+                    }
+                }
                 velocidade = n; tVel = tMs
             }
-            0x10 -> {
+            0x10 -> if (gnv) {
+                val q = Consumo.m3PorHora(n, lambda)
+                tMaf?.let { t0 ->
+                    intervalo(t0, tMs)?.let { dt ->
+                        val v = (m3Hora ?: q) * dt / 3600
+                        m3 += v; segundosGnv += dt
+                        if (parado) { m3Parado += v; segundosParadoGnv += dt }
+                    }
+                }
+                m3Hora = q; litrosHora = null; tMaf = tMs
+            } else {
+                m3Hora = null
                 // Sem teor de etanol ainda: não chuta o combustível.
                 val e = etanolPct ?: return
                 val lh = Consumo.litrosPorHora(n, e, lambda)

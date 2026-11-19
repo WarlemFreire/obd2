@@ -100,3 +100,15 @@ Métrica de antes/depois: teste parado, 2 min sem ar + 2 min com ar (hoje +1,14 
   (optoacoplador), temperaturas (saída do painel, frente do condensador, cofre) com DS18B20,
   corrente da ventoinha (sensor Hall de alicate). Depois, se fizer sentido, pressão de alta do ar
   (transdutor na válvula de serviço). Motor e GNV não precisam: o OBD já cobre.
+
+## GNV: o que se sabe (19/11/2026)
+
+- Kit Landi Renzo de 5ª geração. Velas revisadas (boas a razoáveis), uma bobina nova e as outras boas,
+  "limpeza" feita há menos de 7 dias (a confirmar de quê).
+- Sintomas: estouro na caixa de ar quando o motor pede força (ultrapassagem, subida); marcha lenta
+  irregular às vezes. Hipótese principal: mistura pobre em carga alta (vazão ou pressão do redutor,
+  filtro, bicos de gás, mapa do kit). Marcha lenta irregular: possível bico de gás de um cilindro.
+- App (0.2.13+): chave Líquido/GNV (coluna "combustivel"), botão de evento (coluna "evento"),
+  consumo em m³ (AFR 17, 0,74 kg/m³; ±15%), falhas por cilindro a cada 10 linhas no GNV.
+- Protocolo: gravação curta no GNV (10–15 min: lenta quente, cruzeiro, acelerações), marcando cada
+  falha/estouro; comparar correção de mistura, lambda, avanço e falhas por cilindro com o etanol.

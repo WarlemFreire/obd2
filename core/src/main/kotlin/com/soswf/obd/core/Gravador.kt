@@ -11,7 +11,10 @@ import java.util.Locale
  *  - PIDs rápidos (rotação, velocidade, carga, borboleta, ar, mistura, sonda) entram em TODA linha;
  *  - PIDs lentos (temperaturas, tensão, combustível...) se revezam, [lentosPorCiclo] por linha;
  *  - a cada [cicloBloco21] ciclos, o bloco de fábrica Toyota (serviço 21) bruto, em hexadecimal;
- *  - a cada [cicloDiagnostico] ciclos, códigos pendentes e falhas de ignição por cilindro.
+ *  - a cada [cicloDiagnostico] ciclos, códigos pendentes e falhas de ignição por cilindro;
+ *    no GNV as falhas por cilindro vêm a cada [cicloFalhasGnv] ciclos (é o diagnóstico do kit).
+ *  - coluna "combustivel" (Liquido/GNV, informado pelo motorista: o OBD não sabe que o kit está
+ *    ligado) e "evento" (marcado pelo motorista na hora de uma falha ou estouro).
  *
  * Célula vazia = não lido nesta linha. Nunca repete o valor anterior.
  */
@@ -27,7 +30,14 @@ class Gravador(
     private val cicloBloco21: Int = 30,
     private val cicloDiagnostico: Int = 60,
     midsFalhas: Collection<Int> = emptyList(),
+    private val modoGnv: () -> Boolean = { false },
+    private val cicloFalhasGnv: Int = 10,
 ) {
+    private val eventos = java.util.concurrent.ConcurrentLinkedQueue<String>()
+
+    /** Marca um evento (falha, estouro...) para sair na próxima linha gravada. Pode ser chamado de qualquer thread. */
+    fun marcarEvento(texto: String = "marcado") { eventos.add(texto) }
+
     private val suportados = pidsSuportados.filter { it in Pids.porPid && !Pids.ehMapa(it) && it != 0x01 }.distinct().sorted()
     val rapidos: List<Int> = suportados.filter { it in RAPIDOS }
     val lentos: List<Int> = suportados.filter { it !in RAPIDOS }
@@ -40,7 +50,8 @@ class Gravador(
     private val colunasCilindros = mids.map { "falhas_cil${it - 0xA1}_ciclo" }
     val colunas: List<String> = listOf("t_epoch_ms", "t_s", "ciclo") +
         colunasPid.map { (pid, nome) -> "%02X %s".format(pid, nome) } +
-        listOf("consumo_L_h_estimado", "consumo_km_l_estimado") +
+        listOf("combustivel", "evento") +
+        listOf("consumo_L_h_estimado", "consumo_km_l_estimado", "consumo_m3_h_estimado", "consumo_km_m3_estimado") +
         listOf("toyota_2101_hex", "toyota_2181_hex", "codigos_pendentes") + colunasCilindros + extras + listOf("falhas_leitura")
 
     private val inicio = relogio()
@@ -85,12 +96,20 @@ class Gravador(
         // Consumo estimado pelo ar (ver Consumo): precisa de MAF nesta linha e do último teor de etanol.
         lidos[0x52]?.firstOrNull()?.numero?.let { ultimoEtanol = it; teorReal = true }
         if (!teorReal) lidos[0x51]?.firstOrNull()?.texto?.let { Consumo.etanolPeloTipo(it) }?.let { ultimoEtanol = it }
+        val gnv = modoGnv()
+        celulas["combustivel"] = if (gnv) "GNV" else "Liquido"
+        generateSequence { eventos.poll() }.toList().takeIf { it.isNotEmpty() }?.let { celulas["evento"] = it.joinToString(" | ") }
         val maf = lidos[0x10]?.firstOrNull()?.numero
+        val lambda = lidos[0x44]?.firstOrNull()?.numero ?: 1.0
+        val vel = lidos[0x0D]?.firstOrNull()?.numero
         val etanol = ultimoEtanol
-        if (maf != null && etanol != null) {
-            val lh = Consumo.litrosPorHora(maf, etanol, lidos[0x44]?.firstOrNull()?.numero ?: 1.0)
+        if (maf != null && gnv) {
+            val q = Consumo.m3PorHora(maf, lambda)
+            celulas["consumo_m3_h_estimado"] = num(q, 3)
+            if (vel != null && vel >= 3 && q > 0.05) celulas["consumo_km_m3_estimado"] = num(vel / q, 2)
+        } else if (maf != null && etanol != null) {
+            val lh = Consumo.litrosPorHora(maf, etanol, lambda)
             celulas["consumo_L_h_estimado"] = num(lh, 3)
-            val vel = lidos[0x0D]?.firstOrNull()?.numero
             if (vel != null && vel >= 3 && lh > 0.05) celulas["consumo_km_l_estimado"] = num(vel / lh, 2)
         }
 
@@ -100,6 +119,8 @@ class Gravador(
         }
         if (ciclo % cicloDiagnostico == 0) {
             celulas["codigos_pendentes"] = leitor.codigos("07")?.joinToString(" ")?.ifEmpty { "nenhum" } ?: "sem resposta"
+        }
+        if (ciclo % (if (gnv) cicloFalhasGnv else cicloDiagnostico) == 0) {
             if (mids.isNotEmpty()) {
                 Diagnostico.falhasIgnicao(leitor.modo06(mids)).forEach { f ->
                     f.cicloAtual?.let { celulas["falhas_cil${f.cilindro}_ciclo"] = it.toString() }

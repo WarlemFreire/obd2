@@ -75,4 +75,37 @@ class GravadorTest {
         assertEquals("", linha[cab.indexOf("10 Fluxo de ar (MAF)")])
         assertEquals("1", linha[cab.indexOf("falhas_leitura")])
     }
+
+    @Test
+    fun modoGnvEventoEFalhasMaisFrequentes() {
+        val link = LinkRoteirizado(mapOf(
+            "010C" to "7E8 04 41 0C 0C A8", "010D" to "7E8 03 41 0D 1E", "0110" to "7E8 04 41 10 01 9E",
+            "0152" to "7E8 03 41 52 FF", "07" to "7E8 02 47 00",
+            "06A5" to "7E8 10 13 46 A5 0B 24 00 00\r7E8 21 00 00 FF FF A5 0C 24\r7E8 22 00 01 00 00 FF FF 00",
+        ))
+        val leitor = Leitor(Elm327(link))
+        val out = StringWriter()
+        var gnv = false
+        val g = Gravador(leitor, listOf(0x0C, 0x0D, 0x10, 0x52), out, emptyMap(),
+            cicloBloco21 = 1000, cicloDiagnostico = 1000, midsFalhas = listOf(0xA5),
+            modoGnv = { gnv }, cicloFalhasGnv = 2)
+        g.ciclo()                       // 0: líquido (diagnóstico no ciclo 0)
+        gnv = true
+        g.marcarEvento("estouro")
+        g.ciclo()                       // 1: GNV, com evento
+        g.ciclo()                       // 2: GNV, falhas por cilindro (a cada 2)
+        g.ciclo()                       // 3: GNV
+        val linhas = linhasDados(out.toString())
+        val cab = linhas[0].split(",")
+        val d = linhas.drop(1).map { it.split(",") }
+        fun col(n: String) = cab.indexOf(n).also { assertTrue(it >= 0, n) }
+        assertEquals(listOf("Liquido", "GNV", "GNV", "GNV"), d.map { it[col("combustivel")] })
+        assertEquals(listOf("", "estouro", "", ""), d.map { it[col("evento")] })
+        assertTrue(d[0][col("consumo_L_h_estimado")].isNotEmpty())   // líquido: litros
+        assertEquals("", d[0][col("consumo_m3_h_estimado")])
+        assertTrue(d[1][col("consumo_m3_h_estimado")].isNotEmpty())
+        assertEquals("", d[1][col("consumo_L_h_estimado")])
+        assertEquals(listOf("1", "", "1", ""), d.map { it[col("falhas_cil4_ciclo")] })
+        assertEquals(2, link.enviados.count { it == "06A5" }, "Modo 06 nos ciclos 0 e 2")
+    }
 }

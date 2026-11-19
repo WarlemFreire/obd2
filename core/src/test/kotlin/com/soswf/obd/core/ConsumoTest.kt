@@ -77,4 +77,27 @@ class ConsumoTest {
         a.registrar(0x10, v(4.0), 0)
         assertNull(a.litrosHora)
     }
+
+    @Test
+    fun gnvEmMetrosCubicos() {
+        // 4,14 g/s de ar / 17 = 0,2435 g/s de gás -> 876,7 g/h -> /740 g/m³ = 1,185 m³/h
+        assertEquals(1.185, Consumo.m3PorHora(4.14), 0.001)
+    }
+
+    @Test
+    fun acumuladorSeparaLiquidoDeGnv() {
+        val a = AcumuladorConsumo()
+        a.registrar(0x52, v(100.0), 0)
+        a.registrar(0x0D, v(36.0), 0)
+        for (s in 0..60) { a.registrar(0x0D, v(36.0), s * 1000L); a.registrar(0x10, v(10.0), s * 1000L) }
+        val litrosAntes = a.litros
+        a.gnv = true
+        for (s in 61..121) { a.registrar(0x0D, v(36.0), s * 1000L); a.registrar(0x10, v(10.0), s * 1000L) }
+        assertEquals(litrosAntes, a.litros, 1e-9)               // líquido parou de somar
+        assertEquals(0.6, a.kmGnv, 0.011)                        // 60 s a 36 km/h no GNV
+        assertEquals(0.6, a.kmLiquido, 0.011)
+        assertEquals(Consumo.m3PorHora(10.0) / 60, a.m3, 0.001)
+        assertNull(a.kmPorLitroAgora)
+        assertEquals(36.0 / Consumo.m3PorHora(10.0), a.kmPorM3Agora!!, 1e-9)
+    }
 }
