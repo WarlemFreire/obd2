@@ -13,6 +13,7 @@ import androidx.lifecycle.viewModelScope
 import com.soswf.obd.conexao.Conexoes
 import com.soswf.obd.conexao.Dispositivo
 import com.soswf.obd.conexao.Tipo
+import com.soswf.obd.core.AcumuladorConsumo
 import com.soswf.obd.core.CodigosFalha
 import com.soswf.obd.core.Descoberta
 import com.soswf.obd.core.Dtc
@@ -70,6 +71,20 @@ sealed interface EstadoAtualizacao {
     data class Erro(val msg: String) : EstadoAtualizacao
 }
 
+/** Retrato do consumo estimado para a tela. */
+data class ConsumoTela(
+    val litrosHora: Double?,
+    val kmPorLitroAgora: Double?,
+    val parado: Boolean,
+    val km: Double,
+    val litros: Double,
+    val kmPorLitroMedio: Double?,
+    val minutos: Double,
+    val minutosParado: Double,
+    val litrosParado: Double,
+    val etanolPct: Double?,
+)
+
 data class GravacaoAtiva(val arquivo: String, val inicioMs: Long, val linhas: Int = 0)
 
 data class UiEstado(
@@ -89,6 +104,7 @@ data class UiEstado(
     val gravacao: GravacaoAtiva? = null,
     val gravacoes: List<File> = emptyList(),
     val atualizacao: EstadoAtualizacao = EstadoAtualizacao.Parado,
+    val consumo: ConsumoTela? = null,
 )
 
 class ObdViewModel(app: Application) : AndroidViewModel(app) {
@@ -102,13 +118,33 @@ class ObdViewModel(app: Application) : AndroidViewModel(app) {
     private var leitor: Leitor? = null
     private var jobAoVivo: Job? = null
     private var jobGravacao: Job? = null
+    private val acumulador = AcumuladorConsumo()
 
     private val bt get() = getApplication<Application>().getSystemService(BluetoothManager::class.java)?.adapter
 
     /** Parâmetros mais úteis para olhar dirigindo; o resto entra no modo "todos". */
-    val principais = listOf(0x0C, 0x0D, 0x05, 0x04, 0x42, 0x06, 0x07, 0x0B, 0x10, 0x0E, 0x11, 0x0F, 0x2F, 0x52, 0x5C, 0x65, 0xA4)
+    // 10 (ar), 0D (velocidade), 52 (etanol) e 44 (lambda) alimentam o consumo estimado.
+    val principais = listOf(0x0C, 0x0D, 0x10, 0x52, 0x44, 0x05, 0x04, 0x42, 0x06, 0x07, 0x0B, 0x0E, 0x11, 0x0F, 0x2F, 0x5C, 0x65, 0xA4)
 
     fun limparMensagem() = _estado.update { it.copy(mensagem = null) }
+
+    /** Toda leitura nova (painel ou gravação) passa por aqui: atualiza a tela e o consumo. */
+    private fun receber(lidos: Map<Int, List<Valor>>) {
+        val t = System.currentTimeMillis()
+        val c = synchronized(acumulador) {
+            lidos.forEach { (pid, v) -> acumulador.registrar(pid, v, t) }
+            acumulador.run {
+                ConsumoTela(litrosHora, kmPorLitroAgora, parado, km, litros, kmPorLitroMedio,
+                    segundos / 60, segundosParado / 60, litrosParado, etanolPct)
+            }
+        }
+        _estado.update { it.copy(aoVivo = it.aoVivo + lidos, consumo = c) }
+    }
+
+    fun zerarConsumo() {
+        synchronized(acumulador) { acumulador.zerar() }
+        _estado.update { it.copy(consumo = it.consumo?.copy(km = 0.0, litros = 0.0, kmPorLitroMedio = null, minutos = 0.0, minutosParado = 0.0, litrosParado = 0.0)) }
+    }
 
     fun avisar(m: String) = _estado.update { it.copy(mensagem = m) }
 
@@ -220,7 +256,7 @@ class ObdViewModel(app: Application) : AndroidViewModel(app) {
                     if (!isActive) break
                     val r = comAdaptador { it.ler(pid) } ?: run { jobAoVivo = null; return@launch }
                     val valores = r.firstOrNull { it.ecu == "7E8" }?.valores ?: r.firstOrNull()?.valores ?: continue
-                    _estado.update { it.copy(aoVivo = it.aoVivo + (pid to valores)) }
+                    receber(mapOf(pid to valores))
                 }
             }
         }
@@ -326,9 +362,8 @@ class ObdViewModel(app: Application) : AndroidViewModel(app) {
                     }
                     while (isActive) {
                         val lidos = trava.withLock { g.ciclo() }
-                        _estado.update { s ->
-                            s.copy(aoVivo = s.aoVivo + lidos, gravacao = s.gravacao?.copy(linhas = g.linhas))
-                        }
+                        receber(lidos)
+                        _estado.update { s -> s.copy(gravacao = s.gravacao?.copy(linhas = g.linhas)) }
                         if (g.linhas % 20 == 0) {
                             val min = (System.currentTimeMillis() - agoraMs) / 60000
                             GravacaoService.atualizar(ctx, "$min min · ${g.linhas} linhas")

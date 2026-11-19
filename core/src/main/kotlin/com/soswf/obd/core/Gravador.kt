@@ -40,12 +40,15 @@ class Gravador(
     private val colunasCilindros = mids.map { "falhas_cil${it - 0xA1}_ciclo" }
     val colunas: List<String> = listOf("t_epoch_ms", "t_s", "ciclo") +
         colunasPid.map { (pid, nome) -> "%02X %s".format(pid, nome) } +
+        listOf("consumo_L_h_estimado", "consumo_km_l_estimado") +
         listOf("toyota_2101_hex", "toyota_2181_hex", "codigos_pendentes") + colunasCilindros + extras + listOf("falhas_leitura")
 
     private val inicio = relogio()
     var ciclo = 0
         private set
     private var proximoLento = 0
+    private var ultimoEtanol: Double? = null
+    private var teorReal = false
     var linhas = 0
         private set
 
@@ -77,6 +80,18 @@ class Gravador(
             if (valores == null) { falhas++; continue }
             lidos[pid] = valores
             valores.forEach { v -> celulas["%02X %s".format(pid, v.nome)] = v.numero?.let(::num) ?: v.texto ?: "" }
+        }
+
+        // Consumo estimado pelo ar (ver Consumo): precisa de MAF nesta linha e do último teor de etanol.
+        lidos[0x52]?.firstOrNull()?.numero?.let { ultimoEtanol = it; teorReal = true }
+        if (!teorReal) lidos[0x51]?.firstOrNull()?.texto?.let { Consumo.etanolPeloTipo(it) }?.let { ultimoEtanol = it }
+        val maf = lidos[0x10]?.firstOrNull()?.numero
+        val etanol = ultimoEtanol
+        if (maf != null && etanol != null) {
+            val lh = Consumo.litrosPorHora(maf, etanol, lidos[0x44]?.firstOrNull()?.numero ?: 1.0)
+            celulas["consumo_L_h_estimado"] = num(lh, 3)
+            val vel = lidos[0x0D]?.firstOrNull()?.numero
+            if (vel != null && vel >= 3 && lh > 0.05) celulas["consumo_km_l_estimado"] = num(vel / lh, 2)
         }
 
         if (ciclo % cicloBloco21 == 0) {

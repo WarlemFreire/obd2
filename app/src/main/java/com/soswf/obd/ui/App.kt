@@ -264,6 +264,7 @@ private fun TelaPainel(s: UiEstado, vm: ObdViewModel, padding: PaddingValues, mo
                 }
             }
         }
+        item { CartaoConsumo(s, vm) }
         val grupos = pids.groupBy { Pids.porPid[it]?.grupo ?: "Outros" }
         grupos.forEach { (grupo, lista) ->
             item(key = "g$grupo") { Text(grupo, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 6.dp)) }
@@ -282,6 +283,46 @@ private fun TelaPainel(s: UiEstado, vm: ObdViewModel, padding: PaddingValues, mo
                 }
             }
         }
+    }
+}
+
+private fun br(x: Double, casas: Int = 1) = "%.${casas}f".format(x).replace('.', ',')
+
+@Composable
+private fun CartaoConsumo(s: UiEstado, vm: ObdViewModel) {
+    val c = s.consumo
+    Cartao {
+        Titulo("Consumo (estimado)")
+        when {
+            c == null || c.litrosHora == null -> Text(
+                if (c?.etanolPct == null && c != null) "Aguardando o teor de etanol…"
+                else "Inicie a leitura (ou a gravação) para calcular.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            c.kmPorLitroAgora != null -> {
+                // Pé fora do acelerador: a injeção quase corta e o instantâneo dispara.
+                Text(if (c.kmPorLitroAgora > 99) "> 99 km/l (desacelerando)" else "${br(c.kmPorLitroAgora)} km/l",
+                    style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)
+                Text("${br(c.litrosHora)} L/h agora", style = MaterialTheme.typography.bodySmall)
+            }
+            else -> {
+                Text("${br(c.litrosHora)} L/h", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)
+                Text("parado: gastando sem andar", style = MaterialTheme.typography.bodySmall)
+            }
+        }
+        if (c != null && c.minutos > 0) {
+            HorizontalDivider()
+            Text("Desde que começou a ler:", style = MaterialTheme.typography.labelLarge)
+            Text("${br(c.km)} km · ${br(c.litros, 2)} L" + (c.kmPorLitroMedio?.let { " · média ${br(it)} km/l" } ?: ""))
+            val pct = if (c.litros > 0) c.litrosParado / c.litros * 100 else 0.0
+            Text("Parado: ${br(c.minutosParado, 0)} de ${br(c.minutos, 0)} min · ${br(c.litrosParado, 2)} L (${br(pct, 0)}% do combustível)")
+            OutlinedButton(onClick = { vm.zerarConsumo() }) { Text("Zerar") }
+        }
+        Text(
+            "Calculado pelo ar que o motor puxa e pelo teor de etanol. Erro típico ±10%. " +
+                "A média só conta enquanto o app está lendo.",
+            style = MaterialTheme.typography.bodySmall,
+        )
     }
 }
 
