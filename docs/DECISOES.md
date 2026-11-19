@@ -155,3 +155,17 @@ Métrica de antes/depois: teste parado, 2 min sem ar + 2 min com ar (hoje +1,14 
   30–50 km/h 9,7 km/l (antes 7,2–8,0). Amostra pequena (3,4 km, 10 min); temperatura externa não medida.
 - Parado com compressor armado: ~2,1 L/h, igual a antes: o ganho vem de o compressor desarmar, não de gastar menos ligado.
 - Água 75–84 °C (sem termostática). P0420 pendente segue. Cilindro 4 com 1 falha no ciclo (também às 13:41).
+
+## GNV: primeiras gravações (19/11/2026, 16:34–17:17, ar ligado)
+
+- **Falhas de ignição concentradas no cilindro 4**, quase só com carga alta (carga 85–100%,
+  1.500–3.800 rpm): 62 em 18 min; depois 195 em 5 min (pico +41 em 10 s a 3.846 rpm). Cilindro 1
+  começou a falhar também (11–14); 2 e 3 ~0. No etanol, o cilindro 4 teve 1 falha por ciclo.
+- Mistura no GNV **variou**: −20% de correção curta nos primeiros 5 min, ~−8% nos 18 min seguintes,
+  ~0% no último trecho. A conclusão "kit rico em tudo" (tirada só do primeiro trecho) não se sustenta;
+  calibração fica para depois de resolver as falhas.
+- Ar por rotação com pé fundo: GNV ~9,1–9,8 contra etanol ~10,2–10,4 (−6 a −10%, o gás ocupa
+  lugar do ar). Aceleração com pé fundo também menor, mas a medida é ruidosa (subida, carga).
+- Hipótese principal: centelha fraca no cilindro 4 (o GNV pede mais tensão que o etanol): vela,
+  conector/cachimbo, bobina; em segundo lugar, o bico de gás do 4. Teste: trocar a bobina do 4
+  com a do 2 e ver se a falha muda de cilindro.
