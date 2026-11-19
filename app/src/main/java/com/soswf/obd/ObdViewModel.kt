@@ -187,6 +187,12 @@ class ObdViewModel(app: Application) : AndroidViewModel(app) {
         salvarManutencao(m.copy(plano = novo))
     }
 
+    /** Tira o item do plano. O histórico de serviços dele continua guardado. */
+    fun removerItem(id: String) {
+        val m = _estado.value.manutencao
+        salvarManutencao(m.copy(plano = m.plano.filterNot { it.id == id }))
+    }
+
     fun exportarManutencao(): File {
         val pasta = File(getApplication<Application>().cacheDir, "relatorios").apply { mkdirs() }
         return File(pasta, "manutencao-${SimpleDateFormat("yyyyMMdd", Locale.ROOT).format(Date())}.csv")
@@ -198,11 +204,16 @@ class ObdViewModel(app: Application) : AndroidViewModel(app) {
         val erros = mutableListOf<String>()
         val novo = ManutencaoCsv.ler(texto, erros)
         val m = _estado.value.manutencao
-        val plano = m.plano.associateBy { it.id }.toMutableMap().apply { novo.plano.forEach { put(it.id, it) } }.values.toList()
+        val remover = ManutencaoCsv.remocoes(texto).toSet()
+        val plano = m.plano.associateBy { it.id }.toMutableMap().apply {
+            novo.plano.forEach { put(it.id, it) }
+            remover.forEach { remove(it) }
+        }.values.toList()
         val servicos = (m.servicos + novo.servicos).distinct()
         val odo = (m.odometro + novo.odometro).distinct()
         salvarManutencao(Manutencao(plano, servicos, odo))
         avisar("Importados: ${novo.servicos.size} serviços, ${novo.plano.size} itens do plano, ${novo.odometro.size} leituras" +
+            (if (remover.isNotEmpty()) ", ${remover.size} item(ns) removido(s) do plano" else "") +
             if (erros.isNotEmpty()) ". ${erros.size} linha(s) ignorada(s): ${erros.first()}" else "")
     }
 

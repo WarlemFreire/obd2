@@ -124,4 +124,19 @@ class ManutencaoTest {
         assertEquals(m.odometro, volta.odometro)
         assertEquals(listOf(null, 103_000, 104_064, 113_215, 114_791, null), volta.servicos.map { it.km })
     }
+
+    @Test
+    fun linhaRemoverNaoEhErroEListaOsIds() {
+        val csv = """
+            tipo,id,nome,data,km,intervalo_km,intervalo_meses,custo,local,obs,ref_km_app
+            remover,folga_valvulas,,,,,,,,,
+            remover,tanque_gasolina,,,,,,,,,
+            plano,compressao,Teste de compressão,,,30000,,,,,
+        """.trimIndent()
+        val erros = mutableListOf<String>()
+        val m = ManutencaoCsv.ler(csv, erros)
+        assertTrue(erros.isEmpty(), erros.toString())
+        assertEquals(listOf("compressao"), m.plano.map { it.id })
+        assertEquals(listOf("folga_valvulas", "tanque_gasolina"), ManutencaoCsv.remocoes(csv))
+    }
 }

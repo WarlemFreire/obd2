@@ -118,7 +118,11 @@ fun TelaManutencao(s: UiEstado, vm: ObdViewModel, padding: PaddingValues, modifi
         DialogoServico(item.nome, item.id, odo, onFechar = { servicoPara = null }) { vm.registrarServico(it); servicoPara = null }
     }
     if (servicoAvulso) DialogoServico(null, null, odo, onFechar = { servicoAvulso = false }) { vm.registrarServico(it); servicoAvulso = false }
-    editar?.let { item -> DialogoIntervalo(item, onFechar = { editar = null }) { vm.editarItem(it); editar = null } }
+    editar?.let { item ->
+        DialogoIntervalo(item, onFechar = { editar = null }, onRemover = { vm.removerItem(item.id); editar = null }) {
+            vm.editarItem(it); editar = null
+        }
+    }
 }
 
 @Composable
@@ -198,7 +202,8 @@ private fun DialogoServico(nomeItem: String?, itemId: String?, odo: Int?, onFech
 }
 
 @Composable
-private fun DialogoIntervalo(item: ItemPlano, onFechar: () -> Unit, onOk: (ItemPlano) -> Unit) {
+private fun DialogoIntervalo(item: ItemPlano, onFechar: () -> Unit, onRemover: () -> Unit, onOk: (ItemPlano) -> Unit) {
+    var confirmarRemocao by remember { mutableStateOf(false) }
     var kmTxt by remember { mutableStateOf(item.intervaloKm?.toString() ?: "") }
     var mesesTxt by remember { mutableStateOf(item.intervaloMeses?.toString() ?: "") }
     AlertDialog(
@@ -211,6 +216,12 @@ private fun DialogoIntervalo(item: ItemPlano, onFechar: () -> Unit, onOk: (ItemP
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
                 OutlinedTextField(mesesTxt, { mesesTxt = it }, label = { Text("A cada quantos meses") }, singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                if (item.obs.isNotBlank()) Text(item.obs, style = MaterialTheme.typography.bodySmall)
+                if (!confirmarRemocao) TextButton(onClick = { confirmarRemocao = true }) { Text("Remover este item do plano") }
+                else Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Remover? O histórico continua guardado.", style = MaterialTheme.typography.bodySmall)
+                    TextButton(onClick = onRemover) { Text("Sim, remover") }
+                }
             }
         },
         confirmButton = {

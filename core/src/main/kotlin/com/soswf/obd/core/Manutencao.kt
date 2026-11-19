@@ -142,6 +142,7 @@ data class Manutencao(
  *   plano:    id, nome, intervalo_km, intervalo_meses, obs
  *   servico:  data, km, id (item), nome (descrição), custo, local, obs
  *   odometro: data, km, ref_km_app
+ *   remover:  id (tira o item do plano; serve para corrigir um plano importado antes)
  */
 object ManutencaoCsv {
     val COLUNAS = listOf("tipo", "id", "nome", "data", "km", "intervalo_km", "intervalo_meses", "custo", "local", "obs", "ref_km_app")
@@ -160,6 +161,17 @@ object ManutencaoCsv {
         m.odometro.sortedBy { it.km }.forEach { linha("tipo" to "odometro", "data" to it.data, "km" to it.km, "ref_km_app" to it.refKmApp) }
     }
 
+    /** Ids de itens do plano marcados para remoção (linhas tipo "remover"). */
+    fun remocoes(texto: String): List<String> {
+        val linhas = texto.lines().filter { it.isNotBlank() && !it.startsWith("#") }
+        if (linhas.isEmpty()) return emptyList()
+        val cab = separar(linhas[0]).map { it.trim().lowercase() }
+        val iTipo = cab.indexOf("tipo"); val iId = cab.indexOf("id")
+        return linhas.drop(1).map { separar(it) }
+            .filter { v -> v.getOrNull(iTipo)?.trim()?.lowercase() == "remover" }
+            .mapNotNull { v -> v.getOrNull(iId)?.trim()?.ifEmpty { null } }
+    }
+
     /** Lê o CSV. Linhas com erro são ignoradas e listadas em [erros] (não derruba a importação). */
     fun ler(texto: String, erros: MutableList<String> = mutableListOf()): Manutencao {
         val linhas = texto.lines().filter { it.isNotBlank() && !it.startsWith("#") }
@@ -174,6 +186,7 @@ object ManutencaoCsv {
                     "plano" -> plano += ItemPlano(c("id").ifEmpty { error("id vazio") }, c("nome"), c("intervalo_km").toIntOrNull(), c("intervalo_meses").toIntOrNull(), c("obs"))
                     "servico" -> servicos += Servico(c("data").ifEmpty { null }?.let { LocalDate.parse(it) }, c("km").filter { it.isDigit() }.toIntOrNull(),
                         c("id").ifEmpty { null }, c("nome"), c("custo").replace(',', '.').toDoubleOrNull(), c("local"), c("obs"))
+                    "remover" -> Unit // tratado em remocoes()
                     "odometro" -> odo += LeituraOdometro(c("data").ifEmpty { null }?.let { LocalDate.parse(it) }, c("km").filter { it.isDigit() }.toInt(), c("ref_km_app").toDoubleOrNull() ?: 0.0)
                     else -> erros += "linha ${i + 2}: tipo desconhecido '${c("tipo")}'"
                 }

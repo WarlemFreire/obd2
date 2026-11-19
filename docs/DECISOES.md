@@ -137,3 +137,11 @@ Métrica de antes/depois: teste parado, 2 min sem ar + 2 min com ar (hoje +1,14 
 - Histórico importado no app a partir do prontuário: serviços podem ter só data ou só km; o app não
   inventa o que falta.
 
+## Prontuário feito por IA: como é tratado (19/11/2026)
+
+- Histórico de serviços (o que, km, valor) é relato do proprietário: mantido.
+- Afirmações técnicas e intervalos do prontuário são hipóteses. O plano foi refeito e cada item diz a
+  fonte: "prática comum", "conferir no manual", "conferir com o instalador" ou "exigência legal".
+- Retirados: "1 tanque de gasolina a cada 2 meses" (justificativa fraca) e "folga de válvulas a cada
+  60.000 km" (trocado por teste de compressão a cada 30.000 km; folga só se a compressão cair).
+- CSV aceita linhas `remover,<id>` para tirar itens de um plano importado antes; a tela permite remover itens.
