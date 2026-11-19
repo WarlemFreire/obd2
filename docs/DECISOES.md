@@ -123,3 +123,17 @@ Métrica de antes/depois: teste parado, 2 min sem ar + 2 min com ar (hoje +1,14 
 - Um único CSV (tipo = plano | servico | odometro) para guardar, exportar e importar. Importar mescla:
   itens do plano com o mesmo id são substituídos; serviços e leituras novos são somados.
 - Descoberta virou botão dentro de Diagnóstico.
+
+## Correções após o prontuário do proprietário (19/11/2026)
+
+- **Válvula termostática foi retirada** (após superaquecimento e troca do radiador) e não foi
+  reinstalada. A conclusão anterior "termostato ok" estava errada: na estrada a água caiu para
+  73–74 °C (corrida das 10:55). Reinstalar é prioridade junto com a ventoinha.
+- **Furo no escapamento** confirmado por foto (base do cano de saída): pode influenciar a sonda
+  traseira e o P0420, dependendo da posição em relação à sonda.
+- **P1603/P1604/P1605 no Toyota** = histórico de motor morrendo / dificuldade de partida / marcha
+  lenta irregular (não EEPROM nem código de imobilizador, leitura de scanner genérico). Acrescentados
+  à base de códigos do app. Bateria fraca aparece como causa de P1604: reforça testar o sistema de carga.
+- Histórico importado no app a partir do prontuário: serviços podem ter só data ou só km; o app não
+  inventa o que falta.
+

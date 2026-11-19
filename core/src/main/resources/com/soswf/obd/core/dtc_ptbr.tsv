@@ -142,3 +142,6 @@ U0101	Perda de comunicação com a central do câmbio	Alimentação da central d
 U0121	Perda de comunicação com o módulo do ABS	Fusível do ABS|Chicote CAN|Módulo do ABS	Fusível do ABS
 U0140	Perda de comunicação com o módulo da carroceria	Fusível do módulo|Chicote CAN	Fusíveis do painel
 U0155	Perda de comunicação com o painel de instrumentos	Fusível do painel|Chicote CAN|Painel	Fusíveis do painel
+P1603	(Toyota) Histórico de motor morrendo: o motor apagou depois da partida	Falha de ignição (vela, bobina, conector)|Marcha lenta instável (corpo de borboleta, entrada de ar falsa)|Bateria ou alimentação fraca|Combustível (pressão, bico)	Costuma vir junto com P1605. Ver falhas por cilindro e tensão da bateria
+P1604	(Toyota) Dificuldade de partida: partida demorada ou falhando	Bateria fraca ou terminais oxidados (giro lento)|Falha de ignição|Bico ou pressão de combustível|Sensor de rotação	Tensão da bateria na partida e com motor ligado; terminais e aterramento
+P1605	(Toyota) Marcha lenta irregular: rotação caiu demais em marcha lenta	Falha de ignição|Corpo de borboleta sujo|Entrada de ar falsa|Válvula de purga do cânister|Carga elétrica com bateria fraca	Ver falhas por cilindro na lenta; comparar com e sem ar-condicionado; limpar corpo de borboleta

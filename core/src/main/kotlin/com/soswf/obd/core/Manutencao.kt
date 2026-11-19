@@ -12,9 +12,12 @@ data class ItemPlano(
     val obs: String = "",
 )
 
-/** Serviço feito. [itemId] null = serviço avulso (não zera nenhum item do plano). */
+/**
+ * Serviço feito. [itemId] null = serviço avulso (não zera nenhum item do plano).
+ * [data] e [km] são opcionais: históricos antigos costumam ter só um dos dois, e o app não inventa o outro.
+ */
 data class Servico(
-    val data: LocalDate,
+    val data: LocalDate?,
     val km: Int?,
     val itemId: String?,
     val descricao: String,
@@ -27,7 +30,7 @@ data class Servico(
  * Leitura do odômetro do painel. [refKmApp] = total de km que o app tinha medido naquele momento,
  * para estimar o odômetro depois somando só o que o app mediu desde então.
  */
-data class LeituraOdometro(val data: LocalDate, val km: Int, val refKmApp: Double = 0.0)
+data class LeituraOdometro(val data: LocalDate?, val km: Int, val refKmApp: Double = 0.0)
 
 enum class Estado { OK, ATENCAO, VENCIDO, SEM_HISTORICO }
 
@@ -51,8 +54,35 @@ data class Manutencao(
 ) {
     /** Odômetro estimado: última leitura + km medidos pelo app desde ela. null sem leitura nenhuma. */
     fun odometroEstimado(kmAppTotal: Double): Int? {
-        val ult = odometro.maxWithOrNull(compareBy({ it.data }, { it.km })) ?: return null
+        // O odômetro só cresce: a leitura mais recente é a de maior km.
+        val ult = odometro.maxByOrNull { it.km } ?: return null
         return ult.km + (kmAppTotal - ult.refKmApp).coerceAtLeast(0.0).toInt()
+    }
+
+    /** Pares (data, km) conhecidos, para estimar a ordem de serviços que só têm um dos dois. */
+    private val pares: List<Pair<Long, Int>> by lazy {
+        (servicos.mapNotNull { s -> s.data?.let { d -> s.km?.let { d.toEpochDay() to it } } } +
+            odometro.mapNotNull { o -> o.data?.let { it.toEpochDay() to o.km } })
+            .distinct().sortedBy { it.first }
+    }
+
+    /**
+     * Posição do serviço na linha do tempo, em km (real ou estimado por interpolação entre pares
+     * data/km conhecidos). Serve só para ordenar; nunca é mostrada como km do serviço.
+     */
+    fun posicao(sv: Servico): Double {
+        sv.km?.let { return it.toDouble() }
+        val d = sv.data?.toEpochDay() ?: return Double.NEGATIVE_INFINITY
+        val p = pares
+        if (p.isEmpty()) return d.toDouble()
+        if (p.size == 1) return p[0].second.toDouble() + (d - p[0].first) * 100.0 // ritmo arbitrário só para ordenar
+        val (a, b) = when {
+            d <= p.first().first -> p[0] to p[1]
+            d >= p.last().first -> p[p.size - 2] to p.last()
+            else -> p.zipWithNext().first { (x, y) -> d in x.first..y.first }
+        }
+        val dias = (b.first - a.first).takeIf { it != 0L } ?: return a.second.toDouble()
+        return a.second + (b.second - a.second).toDouble() * (d - a.first) / dias
     }
 
     /**
@@ -60,10 +90,12 @@ data class Manutencao(
      * Vence pelo que chegar primeiro (km ou data).
      */
     fun situacao(hoje: LocalDate, odometroAtual: Int?): List<Situacao> = plano.map { item ->
-        val ultimo = servicos.filter { it.itemId == item.id }.maxWithOrNull(compareBy({ it.data }, { it.km ?: 0 }))
+        val ultimo = servicos.filter { it.itemId == item.id }.maxByOrNull { posicao(it) }
         if (ultimo == null) return@map Situacao(item, null, null, null, null, null, Estado.SEM_HISTORICO)
         val proxKm = item.intervaloKm?.let { iv -> ultimo.km?.let { it + iv } }
-        val proxData = item.intervaloMeses?.let { ultimo.data.plusMonths(it.toLong()) }
+        val proxData = item.intervaloMeses?.let { m -> ultimo.data?.plusMonths(m.toLong()) }
+        // Último serviço sem km e sem data utilizável para este intervalo: não dá para calcular vencimento.
+        if (proxKm == null && proxData == null) return@map Situacao(item, ultimo, null, null, null, null, Estado.SEM_HISTORICO)
         val faltamKm = proxKm?.let { p -> odometroAtual?.let { p - it } }
         val faltamDias = proxData?.let { ChronoUnit.DAYS.between(hoje, it) }
         val vencido = (faltamKm != null && faltamKm <= 0) || (faltamDias != null && faltamDias <= 0)
@@ -121,11 +153,11 @@ object ManutencaoCsv {
             appendLine(COLUNAS.joinToString(",") { c -> esc(mapa[c]?.toString().orEmpty()) })
         }
         m.plano.forEach { linha("tipo" to "plano", "id" to it.id, "nome" to it.nome, "intervalo_km" to it.intervaloKm, "intervalo_meses" to it.intervaloMeses, "obs" to it.obs) }
-        m.servicos.sortedBy { it.data }.forEach {
+        m.servicos.sortedBy { m.posicao(it) }.forEach {
             linha("tipo" to "servico", "id" to it.itemId, "nome" to it.descricao, "data" to it.data, "km" to it.km,
                 "custo" to it.custo?.let { c -> "%.2f".format(java.util.Locale.ROOT, c) }, "local" to it.local, "obs" to it.obs)
         }
-        m.odometro.sortedBy { it.data }.forEach { linha("tipo" to "odometro", "data" to it.data, "km" to it.km, "ref_km_app" to it.refKmApp) }
+        m.odometro.sortedBy { it.km }.forEach { linha("tipo" to "odometro", "data" to it.data, "km" to it.km, "ref_km_app" to it.refKmApp) }
     }
 
     /** Lê o CSV. Linhas com erro são ignoradas e listadas em [erros] (não derruba a importação). */
@@ -140,9 +172,9 @@ object ManutencaoCsv {
             try {
                 when (c("tipo").lowercase()) {
                     "plano" -> plano += ItemPlano(c("id").ifEmpty { error("id vazio") }, c("nome"), c("intervalo_km").toIntOrNull(), c("intervalo_meses").toIntOrNull(), c("obs"))
-                    "servico" -> servicos += Servico(LocalDate.parse(c("data")), c("km").filter { it.isDigit() }.toIntOrNull(),
+                    "servico" -> servicos += Servico(c("data").ifEmpty { null }?.let { LocalDate.parse(it) }, c("km").filter { it.isDigit() }.toIntOrNull(),
                         c("id").ifEmpty { null }, c("nome"), c("custo").replace(',', '.').toDoubleOrNull(), c("local"), c("obs"))
-                    "odometro" -> odo += LeituraOdometro(LocalDate.parse(c("data")), c("km").filter { it.isDigit() }.toInt(), c("ref_km_app").toDoubleOrNull() ?: 0.0)
+                    "odometro" -> odo += LeituraOdometro(c("data").ifEmpty { null }?.let { LocalDate.parse(it) }, c("km").filter { it.isDigit() }.toInt(), c("ref_km_app").toDoubleOrNull() ?: 0.0)
                     else -> erros += "linha ${i + 2}: tipo desconhecido '${c("tipo")}'"
                 }
             } catch (e: Exception) {

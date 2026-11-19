@@ -88,4 +88,40 @@ class ManutencaoTest {
         assertEquals(1, erros.size)            // a linha com data em formato errado
         assertEquals(152_400, m.odometro.single().km)
     }
+
+    @Test
+    fun historicoComDataOuKmFaltando() {
+        // Caso real do prontuário: óleo com data+km, depois só km; cabine só km, depois só data.
+        val m = Manutencao(
+            plano + ItemPlano("filtro_cabine", "Cabine", 10000, 6),
+            listOf(
+                Servico(LocalDate.of(2026, 8, 7), 104_064, "oleo", "óleo"),
+                Servico(LocalDate.of(2026, 10, 9), 114_791, null, "limpeza MAF"),
+                Servico(null, 113_215, "oleo", "óleo"),
+                Servico(null, 103_000, "filtro_cabine", "cabine"),
+                Servico(LocalDate.of(2026, 11, 16), null, "filtro_cabine", "cabine"),
+                Servico(null, null, "atf", "sem data nem km"),
+            ),
+            listOf(LeituraOdometro(null, 118_909)),
+        )
+        val s = m.situacao(hoje, m.odometroEstimado(0.0)).associateBy { it.item.id }
+        // Óleo: o mais recente é o de 113.215 (sem data) -> vence por km: passou 694 km
+        assertEquals(113_215, s.getValue("oleo").ultimo!!.km)
+        assertEquals(Estado.VENCIDO, s.getValue("oleo").estado)
+        assertEquals(-694, s.getValue("oleo").faltamKm)
+        assertNull(s.getValue("oleo").proximaData)                     // sem data, só vence por km
+        // Cabine: o de 16/11 (só data) é mais recente que o de 103.000 (só km) -> vence por data em 16/05/2027
+        assertEquals(LocalDate.of(2026, 11, 16), s.getValue("filtro_cabine").ultimo!!.data)
+        assertEquals(LocalDate.of(2027, 5, 16), s.getValue("filtro_cabine").proximaData)
+        assertEquals(Estado.OK, s.getValue("filtro_cabine").estado)
+        // Serviço sem data nem km: aparece como último, mas sem como calcular vencimento
+        assertEquals(Estado.SEM_HISTORICO, s.getValue("atf").estado)
+        assertEquals("sem data nem km", s.getValue("atf").ultimo!!.descricao)
+        // CSV com campos vazios vai e volta (gravado em ordem cronológica estimada)
+        val volta = ManutencaoCsv.ler(ManutencaoCsv.escrever(m))
+        assertEquals(m.plano, volta.plano)
+        assertEquals(m.servicos.toSet(), volta.servicos.toSet())
+        assertEquals(m.odometro, volta.odometro)
+        assertEquals(listOf(null, 103_000, 104_064, 113_215, 114_791, null), volta.servicos.map { it.km })
+    }
 }

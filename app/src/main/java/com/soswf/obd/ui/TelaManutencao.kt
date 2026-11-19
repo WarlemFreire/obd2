@@ -39,7 +39,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 private val DATA = DateTimeFormatter.ofPattern("dd/MM/yyyy")
-private fun LocalDate.br() = format(DATA)
+private fun LocalDate?.br() = this?.format(DATA) ?: "data não informada"
 private fun km(n: Int) = "%,d".format(n).replace(',', '.') + " km"
 
 @Composable
@@ -66,9 +66,9 @@ fun TelaManutencao(s: UiEstado, vm: ObdViewModel, padding: PaddingValues, modifi
                 if (odo == null) Text("Informe a quilometragem do painel para o app calcular os vencimentos.")
                 else {
                     Text(km(odo), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)
-                    val ult = s.manutencao.odometro.maxByOrNull { it.data }
+                    val ult = s.manutencao.odometro.maxByOrNull { it.km }
                     Text(
-                        "Última informada: ${ult?.let { km(it.km) + " em " + it.data.br() }}. " +
+                        "Última informada: ${ult?.let { km(it.km) + (it.data?.let { d -> " em " + d.br() } ?: "") }}. " +
                             "Depois disso o app soma os km que mediu enquanto estava lendo o carro.",
                         style = MaterialTheme.typography.bodySmall,
                     )
@@ -97,7 +97,7 @@ fun TelaManutencao(s: UiEstado, vm: ObdViewModel, padding: PaddingValues, modifi
                     }) { Text("Exportar") }
                     OutlinedButton(onClick = { importar.launch(arrayOf("text/*", "application/*")) }) { Text("Importar") }
                 }
-                val hist = s.manutencao.servicos.sortedByDescending { it.data }
+                val hist = s.manutencao.servicos.sortedByDescending { s.manutencao.posicao(it) }
                 if (hist.isEmpty()) Text("Nenhum serviço registrado.")
                 hist.forEach { sv ->
                     androidx.compose.material3.HorizontalDivider()
