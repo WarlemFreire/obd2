@@ -62,3 +62,33 @@ Registradas na entrevista de definição (grill-me), novembro de 2026.
   água e passa dela depois de rodar é o candidato. Sem isso, não afirmar nada sobre ATF.
 - PID 54 (pressão do EVAP, faixa larga): a fórmula diverge entre fontes. Resolver com a
   leitura real em repouso (≈ 0 Pa).
+
+## Caso "consumo alto" (19/11/2026)
+
+Fatos medidos (gravações de 19/11, etanol 100%, filtro de cabine novo):
+- Consumo calculado pelo app bate com a bomba: 4,1 km/l (app) x 4,3 km/l (bomba, 91 km).
+- Ar-condicionado é o fator principal: cidade 4,1 km/l com ar x 6,6 km/l sem, na mesma
+  velocidade média (17 km/h); parado 1,92 x 0,78 L/h (+1,14 L/h). Compressor nunca desliga.
+- Motor e câmbio saudáveis: mistura ~+2–3%, falhas ~0, termostato ok (88–96 °C sem ar),
+  conversor trava acima de 60 km/h (rpm/kmh ~24 em 4ª), 11,1 km/l a 70–80 km/h com ar
+  (Inmetro estrada 10,4; cidade 8,4 km/l etanol, sem ar).
+- Ar admitido ~70 °C parado x ~55 °C acima de 60 km/h: pouca circulação de ar no cofre parado.
+- P0420 pendente (catalisador): sonda traseira alterna 0,07–0,82 V em cruzeiro estável.
+  Provável causa: GNV com falhas e estouros. Não trocar catalisador antes de resolver o GNV.
+- Tensão com motor ligado às vezes 12,4–12,9 V: testar sistema de carga.
+- Blocos Toyota 2101/2181 (7E0) só repetem dados padrão (água, ar, rotação, tensão em mV,
+  tempo, distância). Sinal do compressor e temperatura do câmbio não estão neles.
+
+Suspeitos do ar fraco, em ordem: recirculação travada no ar externo, ventoinha (ronca),
+condensador sujo/sem vedação, carga de gás (confirmar por peso ou sub-resfriamento),
+compressor/válvula de expansão (manifold). Embreagem do compressor trocada por trinca antiga.
+
+Métrica de antes/depois: teste parado, 2 min sem ar + 2 min com ar (hoje +1,14 L/h).
+
+## Roteiro combinado
+
+1. Etanol redondo: ar-condicionado (acima), sistema de carga, vazamento no escapamento.
+2. GNV (kit Landi Renzo de 5ª geração; hoje falha e dá estouros): diagnosticar; no app,
+   modo GNV (consumo por MAF não vale no GNV) e, se viável, leitura da central do kit.
+3. Catalisador: só depois do GNV.
+
