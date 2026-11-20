@@ -11,7 +11,7 @@ import java.util.Locale
  *  - PIDs rápidos (rotação, velocidade, carga, borboleta, ar, mistura, sonda) entram em TODA linha;
  *  - PIDs lentos (temperaturas, tensão, combustível...) se revezam, [lentosPorCiclo] por linha;
  *  - a cada [cicloBloco21] ciclos, o bloco de fábrica Toyota (serviço 21) bruto, em hexadecimal;
- *  - a cada [cicloDiagnostico] ciclos, códigos pendentes e falhas de ignição por cilindro;
+ *  - a cada [cicloDiagnostico] ciclos, códigos pendentes e confirmados, luz de injeção e falhas de ignição por cilindro;
  *    no GNV as falhas por cilindro vêm a cada [cicloFalhasGnv] ciclos (é o diagnóstico do kit).
  *  - coluna "combustivel" (Liquido/GNV, informado pelo motorista: o OBD não sabe que o kit está
  *    ligado) e "evento" (marcado pelo motorista na hora de uma falha ou estouro).
@@ -52,7 +52,7 @@ class Gravador(
         colunasPid.map { (pid, nome) -> "%02X %s".format(pid, nome) } +
         listOf("combustivel", "evento") +
         listOf("consumo_L_h_estimado", "consumo_km_l_estimado", "consumo_m3_h_estimado", "consumo_km_m3_estimado") +
-        listOf("toyota_2101_hex", "toyota_2181_hex", "codigos_pendentes") + colunasCilindros + extras + listOf("falhas_leitura")
+        listOf("toyota_2101_hex", "toyota_2181_hex", "codigos_pendentes", "codigos_confirmados", "luz_injecao") + colunasCilindros + extras + listOf("falhas_leitura")
 
     private val inicio = relogio()
     var ciclo = 0
@@ -119,6 +119,8 @@ class Gravador(
         }
         if (ciclo % cicloDiagnostico == 0) {
             celulas["codigos_pendentes"] = leitor.codigos("07")?.joinToString(" ")?.ifEmpty { "nenhum" } ?: "sem resposta"
+            celulas["codigos_confirmados"] = leitor.codigos("03")?.joinToString(" ")?.ifEmpty { "nenhum" } ?: "sem resposta"
+            leitor.prontidao()?.let { celulas["luz_injecao"] = if (it.luzAcesa) "acesa" else "apagada" }
         }
         if (ciclo % (if (gnv) cicloFalhasGnv else cicloDiagnostico) == 0) {
             if (mids.isNotEmpty()) {

@@ -14,7 +14,7 @@ class GravadorTest {
             "0105" to "7E8 03 41 05 79", "0142" to "7E8 04 41 42 34 2F", "012F" to "7E8 03 41 2F D0",
             "0152" to "7E8 03 41 52 FF", "010F" to "7E8 03 41 0F 69", "0165" to "7E8 04 41 65 02 02",
             "0115" to "7E8 04 41 15 98 FF",
-            "07" to "7E8 02 47 00",
+            "07" to "7E8 02 47 00", "03" to "7E8 04 43 01 04 20", "0101" to "7E8 06 41 01 81 07 65 00",
             "06A5" to "7E8 10 13 46 A5 0B 24 00 00\r7E8 21 00 00 FF FF A5 0C 24\r7E8 22 00 01 00 00 FF FF 00",
             "ATSH7E0" to "OK", "ATSH7DF" to "OK",
             "2101" to "7E8 10 1C 61 01 8D 00 56 01\r7E8 21 8B 69 64 79 0C 57 00\r7E8 22 12 38 00 30 83 29 51\r" +
@@ -59,6 +59,9 @@ class GravadorTest {
         assertEquals("", dados[1][col("toyota_2101_hex")])
         assertTrue(dados[3][col("toyota_2181_hex")].startsWith("61 81"))
         assertEquals("nenhum", dados[0][col("codigos_pendentes")])
+        assertEquals("P0420", dados[0][col("codigos_confirmados")])
+        assertEquals("acesa", dados[0][col("luz_injecao")])
+        assertEquals("", dados[1][col("luz_injecao")])
         assertEquals("1", dados[0][col("falhas_cil4_ciclo")])
         assertEquals("87", dados[2][col("bateria_celular_pct")])
         assertEquals(listOf("0.9", "1.8", "2.7", "3.6"), dados.map { it[col("t_s")] }) // início = criação do gravador
