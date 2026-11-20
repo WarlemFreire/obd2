@@ -186,3 +186,5 @@ Métrica de antes/depois: teste parado, 2 min sem ar + 2 min com ar (hoje +1,14 
 - Etanol em rodovia 70–90 km/h com ar: 13,7 km/l. Água 60–85 °C (líquido) e 65–75 °C (GNV): sem termostática.
 - Consequências: calibrar o kit com a central em 100% e correção perto de 0 no início do GNV;
   depois de rodar no GNV, voltar ao líquido sem carga alta por ~10–15 min.
+
+- 20/11/2026: luz de injeção acesa por **P0420 confirmado** (acendeu antes da viagem das 15:38).
