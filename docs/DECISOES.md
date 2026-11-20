@@ -169,3 +169,20 @@ Métrica de antes/depois: teste parado, 2 min sem ar + 2 min com ar (hoje +1,14 
 - Hipótese principal: centelha fraca no cilindro 4 (o GNV pede mais tensão que o etanol): vela,
   conector/cachimbo, bobina; em segundo lugar, o bico de gás do 4. Teste: trocar a bobina do 4
   com a do 2 e ver se a falha muda de cilindro.
+
+## Achado: o GNV desregula o "teor de etanol" aprendido pela central (20/11/2026)
+
+- Tanque com etanol 100%. Ao rodar no GNV, o PID 52 (teor de etanol estimado pela central) cai
+  100 → 62–64% em 1–6 min. Visto em 19/11 (16:39) e 20/11 (15:38). Ao voltar ao líquido, sobe
+  devagar: 62 → 96% em ~13 min.
+- Mecanismo provável: o kit calcula o gás a partir do tempo de injeção da central Toyota. Com o kit
+  mandando gás demais, a central corta (correção curta −20%); a lógica flex interpreta a correção
+  persistente como "menos etanol" e baixa a estimativa. Isso explica a correção −20% → −8% → 0%
+  vista em 19/11: a calibração errada do kit é absorvida pela estimativa de etanol.
+- Ao voltar ao etanol com a estimativa em ~62%, a central injeta pouco: lambda 1,05–1,23,
+  correção curta travada em +19,5%. Nos primeiros 30 s houve +67 falhas no cilindro 4 com carga
+  alta. Mistura pobre na volta ao líquido é candidata forte aos estouros na caixa de ar.
+- No GNV em rodovia (70–90 km/h, carga 60–80%), o cilindro 4 não falhou; falhou (+32) com carga 87–96%.
+- Etanol em rodovia 70–90 km/h com ar: 13,7 km/l. Água 60–85 °C (líquido) e 65–75 °C (GNV): sem termostática.
+- Consequências: calibrar o kit com a central em 100% e correção perto de 0 no início do GNV;
+  depois de rodar no GNV, voltar ao líquido sem carga alta por ~10–15 min.
